@@ -16,6 +16,27 @@ export function isFileUri(uri: string): boolean {
   return uri.startsWith('file://')
 }
 
+const MOSAIC_MAX_DIMENSION = 1920
+
+/** Mosaic 処理用に画像を正規化・縮小する。
+ *  常に ImageManipulator を通してプログレッシブJPEGやEXIF回転を正規化する。
+ *  閾値を超える場合はリサイズも行う。 */
+export async function resizeForMosaic(uri: string): Promise<{ uri: string; scale: number }> {
+  const { width, height } = await getImageSize(uri)
+  const maxDim = Math.max(width, height)
+  const scale = maxDim <= MOSAIC_MAX_DIMENSION ? 1 : MOSAIC_MAX_DIMENSION / maxDim
+  const actions: ImageManipulator.Action[] =
+    scale < 1
+      ? [{ resize: { width: Math.round(width * scale), height: Math.round(height * scale) } }]
+      : []
+  // リサイズ不要でも必ず ImageManipulator を通して JPEG を正規化する
+  const result = await ImageManipulator.manipulateAsync(uri, actions, {
+    format: ImageManipulator.SaveFormat.JPEG,
+    compress: 0.9,
+  })
+  return { uri: result.uri, scale }
+}
+
 export async function cropFace(uri: string, box: BoundingBox): Promise<string> {
   const { width: imgW, height: imgH } = await getImageSize(uri)
 
