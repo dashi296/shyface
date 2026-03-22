@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "shyface",
+    "slug": "shyface",
+    "version": "1.0.0",
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "react-native-vision-camera"
+    ],
+    "android": {
+      "usesCleartextTraffic": false
+    },
+    "scheme": "shyface"
+  }
+}
