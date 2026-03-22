@@ -384,6 +384,8 @@ bunx expo run:ios     # iOS シミュレーターで起動
 bunx expo run:android # Android エミュレーターで起動
 bun run tsc --noEmit  # 型チェック
 bun test              # テスト実行
+bun run lint          # oxlint でリント
+bun run format:check  # oxfmt でフォーマットチェック
 ```
 
 ### EAS Build
