@@ -19,6 +19,7 @@ jest.mock('@/shared/db', () => ({
 jest.mock('@/shared/lib', () => ({
   cosineSimilarity: jest.fn(),
   cropFace: jest.fn().mockImplementation((_uri, _box) => Promise.resolve('file://cropped.jpg')),
+  resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://original.jpg', scale: 1 }),
 }))
 
 function makeWrapper() {
