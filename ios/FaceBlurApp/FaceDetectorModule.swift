@@ -19,8 +19,9 @@ class FaceDetectorModule: NSObject {
       }
 
       let results = request.results as? [VNFaceObservation] ?? []
-      let imageWidth = Double(cgImage.width)
-      let imageHeight = Double(cgImage.height)
+      // image.size は EXIF 回転後の表示サイズ。cgImage.width/height は生ピクセルなので使わない
+      let imageWidth = Double(image.size.width)
+      let imageHeight = Double(image.size.height)
 
       let boxes = results.map { face -> [String: Double] in
         let boundingBox = face.boundingBox
@@ -35,7 +36,9 @@ class FaceDetectorModule: NSObject {
       resolve(boxes)
     }
 
-    let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+    // EXIF 回転情報を Vision に伝えることで、縦撮り写真でも正しい座標を返す
+    let orientation = CGImagePropertyOrientation(image.imageOrientation)
+    let handler = VNImageRequestHandler(cgImage: cgImage, orientation: orientation, options: [:])
     do {
       try handler.perform([request])
     } catch {
@@ -45,4 +48,20 @@ class FaceDetectorModule: NSObject {
 
   @objc
   static func requiresMainQueueSetup() -> Bool { false }
+}
+
+private extension CGImagePropertyOrientation {
+  init(_ uiOrientation: UIImage.Orientation) {
+    switch uiOrientation {
+    case .up:            self = .up
+    case .down:          self = .down
+    case .left:          self = .left
+    case .right:         self = .right
+    case .upMirrored:    self = .upMirrored
+    case .downMirrored:  self = .downMirrored
+    case .leftMirrored:  self = .leftMirrored
+    case .rightMirrored: self = .rightMirrored
+    @unknown default:    self = .up
+    }
+  }
 }

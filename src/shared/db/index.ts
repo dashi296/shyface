@@ -1,4 +1,4 @@
-export { getDb } from './client'
+export { getDb, withTransaction } from './client'
 export type { Person } from './persons'
 export {
   getAllPersons,

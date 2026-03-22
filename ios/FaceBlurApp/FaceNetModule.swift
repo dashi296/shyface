@@ -52,34 +52,36 @@ class FaceNetModule: NSObject {
 
   @objc
   func extractAll(_ uris: [String], resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock) {
-    inferenceQueue.async { [weak self] in
-      guard let self = self else { return }
+    guard let model = model else {
+      reject("MODEL_NOT_FOUND", "FaceNet model not loaded", nil)
+      return
+    }
 
+    inferenceQueue.async {
       var embeddings: [[Double]] = []
       for uri in uris {
-        var resolved = false
-        var failed = false
-        var result: [Double]?
-
-        let group = DispatchGroup()
-        group.enter()
-
-        self.extractEmbedding(uri, resolve: { value in
-          result = value as? [Double]
-          resolved = true
-          group.leave()
-        }, reject: { _, message, _ in
-          failed = true
-          group.leave()
-        })
-
-        group.wait()
-
-        if failed {
-          reject("INFERENCE_FAILED", "Failed to extract embedding for URI: \(uri)", nil)
+        let filePath = uri.hasPrefix("file://") ? String(uri.dropFirst(7)) : uri
+        guard let image = UIImage(contentsOfFile: filePath),
+              let cgImage = image.cgImage else {
+          reject("INVALID_URI", "Cannot load image from URI: \(uri)", nil)
           return
         }
-        if let e = result { embeddings.append(e) }
+        guard let pixelBuffer = cgImage.toPixelBuffer(size: CGSize(width: 160, height: 160)) else {
+          reject("PIXEL_BUFFER_FAILED", "Failed to create pixel buffer for: \(uri)", nil)
+          return
+        }
+        do {
+          let input = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(pixelBuffer: pixelBuffer)])
+          let output = try model.prediction(from: input)
+          guard let embeddingValue = output.featureValue(for: "output")?.multiArrayValue else {
+            reject("INFERENCE_FAILED", "No output from model for: \(uri)", nil)
+            return
+          }
+          embeddings.append((0..<embeddingValue.count).map { Double(truncating: embeddingValue[$0]) })
+        } catch {
+          reject("INFERENCE_FAILED", error.localizedDescription, error)
+          return
+        }
       }
       resolve(embeddings)
     }

@@ -16,7 +16,7 @@ export default function ProcessScreen() {
     if (uri) {
       processImage(uri)
     }
-  }, [uri])
+  }, [uri, processImage])
 
   const handleRetry = () => {
     reset()

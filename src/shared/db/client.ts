@@ -2,6 +2,11 @@ import * as SQLite from 'expo-sqlite'
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null
 
+export async function withTransaction<T>(fn: (db: SQLite.SQLiteDatabase) => Promise<T>): Promise<T> {
+  const db = await getDb()
+  return db.withTransactionAsync(() => fn(db))
+}
+
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
     dbPromise = SQLite.openDatabaseAsync('shyface.db').then(async (db) => {
@@ -15,6 +20,7 @@ export function getDb(): Promise<SQLite.SQLiteDatabase> {
 async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
   await db.execAsync(`
     PRAGMA journal_mode = WAL;
+    PRAGMA foreign_keys = ON;
 
     CREATE TABLE IF NOT EXISTS persons (
       id         TEXT PRIMARY KEY,

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Alert } from 'react-native'
 import * as Crypto from 'expo-crypto'
 import { FaceDetector, FaceNet } from '@/shared/native'
-import { insertPerson, insertEmbedding } from '@/shared/db'
+import { insertPerson, insertEmbedding, withTransaction } from '@/shared/db'
 import { cropFace } from '@/shared/lib'
 
 interface RegisterPersonInput {
@@ -30,18 +30,21 @@ export function useRegisterPerson() {
       const now = new Date().toISOString()
       const personId = Crypto.randomUUID()
 
-      await insertPerson({ id: personId, name, memo: memo || null, created_at: now, updated_at: now })
-
-      for (let i = 0; i < embeddings.length; i++) {
-        await insertEmbedding({
-          id: Crypto.randomUUID(),
-          person_id: personId,
-          embedding: JSON.stringify(embeddings[i]),
-          source_uri: photoUris[i],
-          created_at: now,
-          updated_at: now,
-        })
-      }
+      // insertPerson と insertEmbedding をトランザクションで包む
+      // embedding の途中失敗で person だけ残る孤立レコードを防ぐ
+      await withTransaction(async () => {
+        await insertPerson({ id: personId, name, memo: memo || null, created_at: now, updated_at: now })
+        for (let i = 0; i < embeddings.length; i++) {
+          await insertEmbedding({
+            id: Crypto.randomUUID(),
+            person_id: personId,
+            embedding: JSON.stringify(embeddings[i]),
+            source_uri: photoUris[i],
+            created_at: now,
+            updated_at: now,
+          })
+        }
+      })
 
       return personId
     },

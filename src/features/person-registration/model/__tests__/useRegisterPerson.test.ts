@@ -13,6 +13,7 @@ jest.mock('@/shared/lib', () => ({
 }))
 
 jest.mock('@/shared/db', () => ({
+  withTransaction: jest.fn((fn: (db: unknown) => Promise<unknown>) => fn({})),
   insertPerson: jest.fn(),
   insertEmbedding: jest.fn(),
 }))

@@ -50,7 +50,7 @@ class FaceNetModule(reactContext: ReactApplicationContext) :
             for (i in 0 until uris.size()) {
                 val uri = uris.getString(i) ?: continue
                 val path = uri.removePrefix("file://")
-                val bitmap = BitmapFactory.decodeFile(path)
+                val bitmap = decodeWithExif(path)
                     ?: return promise.reject("INVALID_URI", "Cannot load image: $uri")
 
                 val embedding = runInference(bitmap)
