@@ -18,7 +18,9 @@ class FaceDetectorModule: NSObject {
         return
       }
 
-      let results = request.results as? [VNFaceObservation] ?? []
+      let allResults = request.results as? [VNFaceObservation] ?? []
+      // confidence が閾値未満の検出結果を除外する（shared/config/constants.ts の FACE_DETECTION_CONFIDENCE_THRESHOLD と同値）
+      let results = allResults.filter { $0.confidence >= 0.5 }
       // image.size は EXIF 回転後の表示サイズ。cgImage.width/height は生ピクセルなので使わない
       let imageWidth = Double(image.size.width)
       let imageHeight = Double(image.size.height)

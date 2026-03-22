@@ -37,14 +37,20 @@ export async function resizeForMosaic(uri: string): Promise<{ uri: string; scale
   return { uri: result.uri, scale }
 }
 
+const FACE_CROP_PADDING = 0.2
+
 export async function cropFace(uri: string, box: BoundingBox): Promise<string> {
   const { width: imgW, height: imgH } = await getImageSize(uri)
 
-  const originX = Math.max(0, Math.round(box.x))
-  const originY = Math.max(0, Math.round(box.y))
+  // バウンディングボックスを 20% 拡張して顔周辺のコンテキストを含める
+  // 登録・認識の両方で同じ前処理を適用することで照合精度を向上させる
+  const padX = box.width * FACE_CROP_PADDING
+  const padY = box.height * FACE_CROP_PADDING
+  const originX = Math.max(0, Math.round(box.x - padX))
+  const originY = Math.max(0, Math.round(box.y - padY))
   // 右端・下端は画像サイズ - 1 に収める（ぴったり一致すると ImageManipulator が width=0 エラーを投げる）
-  const width = Math.max(1, Math.min(Math.round(box.width), imgW - 1 - originX))
-  const height = Math.max(1, Math.min(Math.round(box.height), imgH - 1 - originY))
+  const width = Math.max(1, Math.min(Math.round(box.x + box.width + padX) - originX, imgW - 1 - originX))
+  const height = Math.max(1, Math.min(Math.round(box.y + box.height + padY) - originY, imgH - 1 - originY))
 
   const result = await ImageManipulator.manipulateAsync(
     uri,

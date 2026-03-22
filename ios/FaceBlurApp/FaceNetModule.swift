@@ -30,13 +30,13 @@ class FaceNetModule: NSObject {
     }
 
     inferenceQueue.async {
-      guard let pixelBuffer = cgImage.toPixelBuffer(size: CGSize(width: 160, height: 160)) else {
-        reject("PIXEL_BUFFER_FAILED", "Failed to create pixel buffer", nil)
+      guard let inputArray = cgImage.toNormalizedMLArray(size: CGSize(width: 160, height: 160)) else {
+        reject("PIXEL_BUFFER_FAILED", "Failed to create normalized input array", nil)
         return
       }
 
       do {
-        let input = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(pixelBuffer: pixelBuffer)])
+        let input = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(multiArray: inputArray)])
         let output = try model.prediction(from: input)
         if let embeddingValue = output.featureValue(for: "output")?.multiArrayValue {
           let embedding = (0..<embeddingValue.count).map { Double(truncating: embeddingValue[$0]) }
@@ -66,12 +66,12 @@ class FaceNetModule: NSObject {
           reject("INVALID_URI", "Cannot load image from URI: \(uri)", nil)
           return
         }
-        guard let pixelBuffer = cgImage.toPixelBuffer(size: CGSize(width: 160, height: 160)) else {
-          reject("PIXEL_BUFFER_FAILED", "Failed to create pixel buffer for: \(uri)", nil)
+        guard let inputArray = cgImage.toNormalizedMLArray(size: CGSize(width: 160, height: 160)) else {
+          reject("PIXEL_BUFFER_FAILED", "Failed to create normalized input array for: \(uri)", nil)
           return
         }
         do {
-          let input = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(pixelBuffer: pixelBuffer)])
+          let input = try MLDictionaryFeatureProvider(dictionary: ["input": MLFeatureValue(multiArray: inputArray)])
           let output = try model.prediction(from: input)
           guard let embeddingValue = output.featureValue(for: "output")?.multiArrayValue else {
             reject("INFERENCE_FAILED", "No output from model for: \(uri)", nil)
@@ -92,33 +92,61 @@ class FaceNetModule: NSObject {
 }
 
 private extension CGImage {
-  func toPixelBuffer(size: CGSize) -> CVPixelBuffer? {
+  /// 画像を target size にリサイズし、ピクセル値を (pixel - 128) / 128.0 で [-1, 1] に正規化した
+  /// Float32 MLMultiArray [1, H, W, 3] を返す。Android FaceNetModule.kt の前処理と一致させる。
+  func toNormalizedMLArray(size: CGSize) -> MLMultiArray? {
+    let width = Int(size.width)
+    let height = Int(size.height)
+
+    // ARGB ピクセルバッファを作成してリサイズ描画
     var pixelBuffer: CVPixelBuffer?
-    let attrs: [CFString: Any] = [
-      kCVPixelBufferCGImageCompatibilityKey: true,
-      kCVPixelBufferCGBitmapContextCompatibilityKey: true,
-    ]
     CVPixelBufferCreate(
-      kCFAllocatorDefault,
-      Int(size.width),
-      Int(size.height),
+      kCFAllocatorDefault, width, height,
       kCVPixelFormatType_32ARGB,
-      attrs as CFDictionary,
+      [kCVPixelBufferCGImageCompatibilityKey: true,
+       kCVPixelBufferCGBitmapContextCompatibilityKey: true] as CFDictionary,
       &pixelBuffer
     )
     guard let buffer = pixelBuffer else { return nil }
+
     CVPixelBufferLockBaseAddress(buffer, [])
+    defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+
     let context = CGContext(
       data: CVPixelBufferGetBaseAddress(buffer),
-      width: Int(size.width),
-      height: Int(size.height),
+      width: width, height: height,
       bitsPerComponent: 8,
       bytesPerRow: CVPixelBufferGetBytesPerRow(buffer),
       space: CGColorSpaceCreateDeviceRGB(),
       bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue
     )
     context?.draw(self, in: CGRect(origin: .zero, size: size))
-    CVPixelBufferUnlockBaseAddress(buffer, [])
-    return buffer
+
+    guard let baseAddress = CVPixelBufferGetBaseAddress(buffer)?.assumingMemoryBound(to: UInt8.self) else {
+      return nil
+    }
+    let bytesPerRow = CVPixelBufferGetBytesPerRow(buffer)
+
+    // Float32 MLMultiArray [1, H, W, 3] を作成してピクセル値を正規化
+    guard let array = try? MLMultiArray(
+      shape: [1, NSNumber(value: height), NSNumber(value: width), 3],
+      dataType: .float32
+    ) else { return nil }
+
+    let ptr = array.dataPointer.assumingMemoryBound(to: Float32.self)
+    for y in 0..<height {
+      for x in 0..<width {
+        // ARGB レイアウト: [A=0, R=1, G=2, B=3]
+        let pixelOffset = y * bytesPerRow + x * 4
+        let r = Float(baseAddress[pixelOffset + 1])
+        let g = Float(baseAddress[pixelOffset + 2])
+        let b = Float(baseAddress[pixelOffset + 3])
+        let idx = (y * width + x) * 3
+        ptr[idx]     = (r - 128.0) / 128.0
+        ptr[idx + 1] = (g - 128.0) / 128.0
+        ptr[idx + 2] = (b - 128.0) / 128.0
+      }
+    }
+    return array
   }
 }

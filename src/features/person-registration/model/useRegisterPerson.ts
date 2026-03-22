@@ -21,7 +21,11 @@ export function useRegisterPerson() {
       for (const uri of photoUris) {
         const boxes = await FaceDetector.detect(uri)
         if (boxes.length === 0) throw new Error('写真から顔が検出できませんでした。顔が正面を向いた写真を使用してください。')
-        croppedUris.push(await cropFace(uri, boxes[0]))
+        // 複数顔が検出された場合はバウンディングボックス面積が最大の顔を選択する
+        const largestBox = boxes.reduce((max, box) =>
+          box.width * box.height > max.width * max.height ? box : max
+        )
+        croppedUris.push(await cropFace(uri, largestBox))
       }
 
       // FaceNet を先に実行し、失敗時は DB に書かない

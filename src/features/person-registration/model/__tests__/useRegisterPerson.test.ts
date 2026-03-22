@@ -111,4 +111,24 @@ describe('useRegisterPerson', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
+
+  it('selects the largest face when multiple faces are detected', async () => {
+    const { FaceDetector } = require('@/shared/native')
+    const { cropFace } = require('@/shared/lib')
+    // 小さい顔(100x100)と大きい顔(200x200)が検出される場合
+    FaceDetector.detect.mockResolvedValue([
+      { x: 0, y: 0, width: 100, height: 100 },
+      { x: 50, y: 50, width: 200, height: 200 },
+    ])
+
+    const qc = makeQc()
+    const { result } = renderHook(() => useRegisterPerson(), { wrapper: makeWrapper(qc) })
+    act(() => { result.current.mutate(INPUT) })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    // 3枚すべてで最大面積の顔(200x200)が選ばれていることを確認
+    for (const call of cropFace.mock.calls) {
+      expect(call[1]).toEqual({ x: 50, y: 50, width: 200, height: 200 })
+    }
+  })
 })
