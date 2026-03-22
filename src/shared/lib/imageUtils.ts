@@ -1,6 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator'
 import { Image } from 'react-native'
 import type { BoundingBox } from '@/shared/native'
+import { FACE_CROP_PADDING } from '@/shared/config'
 
 function getImageSize(uri: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) =>
@@ -36,8 +37,6 @@ export async function resizeForMosaic(uri: string): Promise<{ uri: string; scale
   })
   return { uri: result.uri, scale }
 }
-
-const FACE_CROP_PADDING = 0.2
 
 export async function cropFace(uri: string, box: BoundingBox): Promise<string> {
   const { width: imgW, height: imgH } = await getImageSize(uri)

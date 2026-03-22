@@ -25,7 +25,9 @@ class FaceDetectorModule(reactContext: ReactApplicationContext) :
             ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
             else -> return bitmap
         }
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        bitmap.recycle()
+        return rotated
     }
 
     @ReactMethod
