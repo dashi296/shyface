@@ -13,7 +13,7 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import { Button } from '@/shared/ui'
 import { FACE_REGISTER_MAX_PHOTOS } from '@/shared/config'
-import { useRegisterPerson } from '@/features/person-registration'
+import { useRegisterPerson } from '../model/useRegisterPerson'
 
 interface RegisterFaceSheetProps {
   visible: boolean

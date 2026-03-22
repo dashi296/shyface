@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react'
 import { View, Text, FlatList, StyleSheet, Alert, TouchableOpacity } from 'react-native'
-import { usePersons, useDeletePerson } from '@/features/person-management'
+import { usePersons } from '../model/usePersons'
+import { useDeletePerson } from '../model/useDeletePerson'
 import type { Person } from '@/shared/db'
 
 export function PersonList() {
