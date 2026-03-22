@@ -1,2 +1,2 @@
 export { cosineSimilarity } from './cosineSimilarity'
-export { uriToFilePath, isFileUri, cropFace } from './imageUtils'
+export { uriToFilePath, isFileUri, cropFace, resizeForMosaic } from './imageUtils'

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
 import { useProcessImage } from '@/features/image-processing'
@@ -12,11 +12,15 @@ export default function ProcessScreen() {
 
   const { mutate: processImage, isPending, data: resultUri, error, reset } = useProcessImage()
 
+  // processImage は useMutation が返す関数でレンダーごとに参照が変わるため deps に含めない。
+  // hasStarted で二重実行を防ぐ（ナビゲーション状態復元時の再マウントを含む）。
+  const hasStarted = useRef(false)
   useEffect(() => {
-    if (uri) {
+    if (uri && !hasStarted.current) {
+      hasStarted.current = true
       processImage(uri)
     }
-  }, [uri, processImage])
+  }, [uri]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRetry = () => {
     reset()
