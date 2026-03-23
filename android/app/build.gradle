@@ -91,9 +91,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.shyface"
+    namespace "com.dashi296.shyface"
     defaultConfig {
-        applicationId "com.shyface"
+        applicationId "com.dashi296.shyface"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
