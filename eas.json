@@ -8,7 +8,12 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "ios": {
+        "distribution": "store"
+      },
+      "android": {
+        "distribution": "internal"
+      }
     },
     "production": {}
   },
