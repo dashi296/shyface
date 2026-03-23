@@ -9,8 +9,18 @@
       "react-native-vision-camera"
     ],
     "android": {
-      "usesCleartextTraffic": false
+      "usesCleartextTraffic": false,
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
-    "scheme": "shyface"
+    "scheme": "shyface",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "646fa1bb-9f61-4772-9a9b-9d8ada970ebc"
+      }
+    },
+    "owner": "dashi296"
   }
 }
