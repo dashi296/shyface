@@ -9,7 +9,7 @@
     },
     "preview": {
       "ios": {
-        "distribution": "store"
+        "simulator": true
       },
       "android": {
         "distribution": "internal"
