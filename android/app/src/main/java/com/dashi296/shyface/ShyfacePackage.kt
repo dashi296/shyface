@@ -1,4 +1,4 @@
-package com.shyface
+package com.dashi296.shyface
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

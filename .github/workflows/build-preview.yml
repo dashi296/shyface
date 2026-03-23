@@ -18,6 +18,7 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+      - run: rm -f ios/Podfile.lock
       - run: eas build --profile preview --platform ios --non-interactive --local
 
   build-android:
