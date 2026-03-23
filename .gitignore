@@ -33,3 +33,7 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Android keystore
+*.jks
+*.keystore
