@@ -7,7 +7,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS (Preview)
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -33,5 +33,4 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android/setup-android@v3
       - run: eas build --profile preview --platform android --non-interactive --local
