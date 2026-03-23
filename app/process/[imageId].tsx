@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
-import { useProcessImage } from '@/features/image-processing'
-import { ProcessResultView } from '@/features/image-processing'
+import { useProcessImage, ProcessResultView } from '@/features/image-processing'
 import { LoadingOverlay } from '@/shared/ui'
 
 export default function ProcessScreen() {

@@ -1,0 +1,32 @@
+name: EAS Build (Preview)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-ios:
+    name: Build iOS (Preview)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --profile preview --platform ios --non-interactive
+
+  build-android:
+    name: Build Android (Preview)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --profile preview --platform android --non-interactive

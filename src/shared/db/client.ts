@@ -4,7 +4,11 @@ let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null
 
 export async function withTransaction<T>(fn: (db: SQLite.SQLiteDatabase) => Promise<T>): Promise<T> {
   const db = await getDb()
-  return db.withTransactionAsync(() => fn(db))
+  let result: T
+  await db.withTransactionAsync(async () => {
+    result = await fn(db)
+  })
+  return result!
 }
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {

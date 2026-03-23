@@ -7,7 +7,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest",
+    "lint": "eslint src/ app/",
+    "test": "jest --forceExit",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {
@@ -44,6 +45,8 @@
     "@types/jest": "~29",
     "@types/react": "~19.2.10",
     "@types/uuid": "^11.0.0",
+    "eslint": "9",
+    "eslint-config-expo": "^55.0.0",
     "jest": "~29",
     "jest-expo": "^55.0.11",
     "typescript": "~5.9.2"
