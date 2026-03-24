@@ -3,21 +3,35 @@ name: Release Build
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-ios:
     name: Build iOS (Preview)
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-
-      - uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '16.2'
 
       - uses: oven-sh/setup-bun@v2
 
       - run: bun install --frozen-lockfile
+
+      - name: Select Xcode 26
+        run: |
+          XCODE_APP=""
+          if [ -d /Applications/Xcode.app ]; then
+            XCODE_APP=/Applications/Xcode.app
+          fi
+          if [ -z "$XCODE_APP" ]; then
+            XCODE_APP=$(find /Applications -maxdepth 1 -name 'Xcode_26*.app' -print | rg -v 'beta' | sort -V | tail -1)
+          fi
+          if [ -z "$XCODE_APP" ]; then
+            echo "A stable Xcode 26.x installation was not found on this runner"
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
 
       - uses: expo/expo-github-action@v8
         with:
@@ -43,6 +57,7 @@ jobs:
 
   build-android:
     name: Build Android (Preview)
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +91,8 @@ jobs:
 
   release:
     name: GitHub Release & Slack 通知
-    needs: [build-ios, build-android]
+    if: github.event_name == 'push'
+    needs: [build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
