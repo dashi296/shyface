@@ -7,7 +7,7 @@ on:
 jobs:
   build-ios:
     name: Build iOS (Preview)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -56,8 +56,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-
-      - uses: android/setup-android@v3
 
       - name: EAS ローカルビルド
         run: eas build --profile preview --platform android --non-interactive --local
