@@ -3,6 +3,8 @@ name: Release Build
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-ios:
@@ -39,6 +41,7 @@ jobs:
 
   build-android:
     name: Build Android (Preview)
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +75,8 @@ jobs:
 
   release:
     name: GitHub Release & Slack 通知
-    needs: [build-ios, build-android]
+    if: github.event_name == 'push'
+    needs: [build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
