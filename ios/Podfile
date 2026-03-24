@@ -66,9 +66,8 @@ target 'shyface' do
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-        # Xcode 16.4 は Swift 6 をデフォルトで強制するため、Swift 5 モードに固定して
-        # Expo/React Native の concurrency エラー（@MainActor 関連）を回避する
-        config.build_settings['SWIFT_VERSION'] = '5.0'
+        # Xcode 16.4 は Swift 6 をデフォルトで強制するため、strict concurrency チェックを抑制する
+        # SWIFT_VERSION は設定しない（@MainActor など Swift 5.5+ の属性を壊すため）
         config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
       end
     end
