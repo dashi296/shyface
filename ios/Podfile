@@ -59,5 +59,14 @@ target 'shyface' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
+    # expo-modules-core (Expo 56+) uses Swift 6 syntax (@MainActor in conformance clause).
+    # Force Swift 6 for ExpoModulesCore so it compiles correctly on Xcode 16.
+    installer.pods_project.targets.each do |target|
+      if target.name == 'ExpoModulesCore'
+        target.build_configurations.each do |config|
+          config.build_settings['SWIFT_VERSION'] = '6'
+        end
+      end
+    end
   end
 end
