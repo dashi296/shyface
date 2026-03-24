@@ -9,4 +9,7 @@ config.resolver.alias = {
   '@': path.resolve(__dirname, 'src'),
 };
 
+// TFLite モデルファイルをアセットとして扱う（react-native-fast-tflite）
+config.resolver.assetExts.push('tflite');
+
 module.exports = config;
