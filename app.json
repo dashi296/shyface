@@ -9,7 +9,11 @@
       "react-native-vision-camera"
     ],
     "ios": {
-      "bundleIdentifier": "com.dashi296.shyface"
+      "bundleIdentifier": "com.dashi296.shyface",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera"
+      },
+      "appleTeamId": "8P6M7BMMMT"
     },
     "android": {
       "package": "com.dashi296.shyface",

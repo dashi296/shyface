@@ -156,6 +156,13 @@ android {
     }
 }
 
+// Exclude old TensorFlow Lite artifacts globally to avoid duplicate class conflicts with LiteRT
+// (Google rebranded TFLite → LiteRT in 2024; both ship identical org.tensorflow.lite.* classes)
+configurations.all {
+    exclude group: "org.tensorflow", module: "tensorflow-lite"
+    exclude group: "org.tensorflow", module: "tensorflow-lite-api"
+}
+
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
@@ -163,9 +170,9 @@ dependencies {
     // ML Kit Face Detection (offline)
     implementation("com.google.mlkit:face-detection:16.1.7")
 
-    // TensorFlow Lite (FaceNet)
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    // LiteRT (formerly TensorFlow Lite) for FaceNet
+    implementation("com.google.ai.edge.litert:litert:1.4.0")
+    implementation("com.google.ai.edge.litert:litert-support:1.4.0")
 
     // EXIF rotation handling
     implementation("androidx.exifinterface:exifinterface:1.3.7")

@@ -1,4 +1,4 @@
-package com.shyface
+package com.dashi296.shyface
 
 import android.os.Build
 import android.os.Bundle
