@@ -1,4 +1,4 @@
-package com.shyface
+package com.dashi296.shyface
 
 import android.app.Application
 import android.content.res.Configuration
