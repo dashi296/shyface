@@ -1,4 +1,4 @@
-name: EAS Build (Preview)
+name: Release Build
 
 on:
   push:
@@ -10,28 +10,211 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+
       - uses: oven-sh/setup-bun@v2
+
       - run: bun install --frozen-lockfile
+
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - run: eas build --profile preview --platform ios --non-interactive --local
+
+      - name: EAS ローカルビルド
+        run: eas build --profile preview --platform ios --non-interactive --local
+
+      - name: 成果物をリネーム
+        run: |
+          FILE=$(find . -maxdepth 1 \( -name "*.tar.gz" -o -name "*.ipa" \) | head -1)
+          if [[ "$FILE" == *.ipa ]]; then
+            mv "$FILE" ios-preview.ipa
+          else
+            mv "$FILE" ios-preview.tar.gz
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios-preview.*
 
   build-android:
     name: Build Android (Preview)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: oven-sh/setup-bun@v2
+
       - run: bun install --frozen-lockfile
+
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: android/setup-android@v3
-      - run: eas build --profile preview --platform android --non-interactive --local
+
+      - name: EAS ローカルビルド
+        run: eas build --profile preview --platform android --non-interactive --local
+
+      - name: 成果物をリネーム
+        run: |
+          FILE=$(find . -maxdepth 1 -name "*.apk" | head -1)
+          mv "$FILE" android-preview.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: android-preview.apk
+
+  release:
+    name: GitHub Release & Slack 通知
+    needs: [build-ios, build-android]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: iOS 成果物をダウンロード
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-build
+          path: ./artifacts
+
+      - name: Android 成果物をダウンロード
+        uses: actions/download-artifact@v4
+        with:
+          name: android-build
+          path: ./artifacts
+
+      - name: ビルド情報を設定
+        id: info
+        run: |
+          SHA="${{ github.sha }}"
+          echo "tag=build-${SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "sha7=${SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_OUTPUT
+          echo "ios_filename=$(cd ./artifacts && ls ios-preview.*)" >> $GITHUB_OUTPUT
+
+      - name: GitHub Release を作成
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.info.outputs.tag }}
+          SHA: ${{ github.sha }}
+          BUILD_DATE: ${{ steps.info.outputs.date }}
+          SHA7: ${{ steps.info.outputs.sha7 }}
+          IOS_FILENAME: ${{ steps.info.outputs.ios_filename }}
+          REPO: ${{ github.repository }}
+        run: |
+          cat > release-notes.md << EOF
+          **Commit:** \`$SHA\`
+          **Branch:** main
+          **Built at:** $BUILD_DATE
+          EOF
+
+          gh release create "$TAG" \
+            --repo "$REPO" \
+            --title "Preview Build $SHA7 ($BUILD_DATE)" \
+            --notes-file release-notes.md \
+            "./artifacts/$IOS_FILENAME" \
+            ./artifacts/android-preview.apk
+
+      - name: ダウンロード URL を設定
+        id: urls
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.info.outputs.tag }}
+          IOS_FILENAME: ${{ steps.info.outputs.ios_filename }}
+        run: |
+          BASE="https://github.com/$REPO/releases/download/$TAG"
+          echo "ios=$BASE/$IOS_FILENAME" >> $GITHUB_OUTPUT
+          echo "android=$BASE/android-preview.apk" >> $GITHUB_OUTPUT
+          echo "release=https://github.com/$REPO/releases/tag/$TAG" >> $GITHUB_OUTPUT
+
+      - name: QR コード URL を生成
+        id: qr
+        run: |
+          python3 - <<'EOF'
+          import urllib.parse, os
+          base = "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data="
+          ios = os.environ["IOS_URL"]
+          android = os.environ["ANDROID_URL"]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"ios={base}{urllib.parse.quote(ios, safe='')}\n")
+              f.write(f"android={base}{urllib.parse.quote(android, safe='')}\n")
+          EOF
+        env:
+          IOS_URL: ${{ steps.urls.outputs.ios }}
+          ANDROID_URL: ${{ steps.urls.outputs.android }}
+
+      - name: Slack 通知
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "shyface Preview Build"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*コミット:*\n`${{ steps.info.outputs.sha7 }}`"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*ビルド日時:*\n${{ steps.info.outputs.date }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":apple: *iOS (Simulator)*\n<${{ steps.urls.outputs.ios }}|${{ steps.info.outputs.ios_filename }} をダウンロード>"
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": "${{ steps.qr.outputs.ios }}",
+                    "alt_text": "iOS ダウンロード QR コード"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":robot_face: *Android (APK)*\n<${{ steps.urls.outputs.android }}|android-preview.apk をダウンロード>"
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": "${{ steps.qr.outputs.android }}",
+                    "alt_text": "Android ダウンロード QR コード"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "GitHub Release を開く"
+                      },
+                      "url": "${{ steps.urls.outputs.release }}"
+                    }
+                  ]
+                }
+              ]
+            }
