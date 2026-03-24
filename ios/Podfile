@@ -66,6 +66,8 @@ target 'shyface' do
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+        # Swift 6 の strict concurrency チェックを抑制
+        config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
       end
     end
   end

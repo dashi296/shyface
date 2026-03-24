@@ -17,7 +17,6 @@
     },
     "android": {
       "package": "com.dashi296.shyface",
-      "usesCleartextTraffic": false,
       "permissions": [
         "android.permission.CAMERA"
       ]
