@@ -384,6 +384,7 @@
 				DEVELOPMENT_TEAM = "8P6M7BMMMT";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 			};
 			name = Debug;
 		};
@@ -415,6 +416,7 @@
 				DEVELOPMENT_TEAM = "8P6M7BMMMT";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
 			};
 			name = Release;
 		};
