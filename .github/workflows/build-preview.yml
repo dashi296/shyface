@@ -3,8 +3,6 @@ name: Release Build
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build-ios:
@@ -91,7 +89,6 @@ jobs:
 
   release:
     name: GitHub Release & Slack 通知
-    if: github.event_name == 'push'
     needs: [build-ios]
     runs-on: ubuntu-latest
     permissions:
