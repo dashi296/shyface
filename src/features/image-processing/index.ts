@@ -1,2 +1,5 @@
 export { useProcessImage } from './model/useProcessImage'
+export { useProcessImages } from './model/useProcessImages'
+export type { ImageProcessResult, ProcessProgress } from './model/useProcessImages'
 export { ProcessResultView } from './ui/ProcessResultView'
+export { ProcessBatchResultView } from './ui/ProcessBatchResultView'

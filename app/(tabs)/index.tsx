@@ -16,10 +16,15 @@ export default function HomeScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
+      allowsMultipleSelection: true,
+      selectionLimit: 20,
     })
     if (!result.canceled && result.assets.length > 0) {
-      const uri = result.assets[0].uri
-      router.push({ pathname: '/process/[imageId]', params: { imageId: encodeURIComponent(uri) } })
+      const uris = result.assets.map((a) => a.uri)
+      router.push({
+        pathname: '/process/batch',
+        params: { uris: encodeURIComponent(JSON.stringify(uris)) },
+      })
     }
   }, [router])
 
