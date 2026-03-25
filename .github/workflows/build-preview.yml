@@ -57,7 +57,6 @@ jobs:
 
   build-android:
     name: Build Android (Preview)
-    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
