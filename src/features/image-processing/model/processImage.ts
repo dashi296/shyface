@@ -12,7 +12,7 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
   const faceEmbeddings = await FaceNet.extractAll(croppedUris)
   const storedEmbeddings = preloadedEmbeddings ?? (await getAllEmbeddings())
 
-  // person_id ごとにグループ化して平均類似度で判定（1枚の偶然の一致を防ぐ）
+  // person_id ごとにグループ化し、いずれか1件でも閾値を超えれば一致とみなす（CLAUDE.md 照合方針）
   const embeddingsByPerson = storedEmbeddings.reduce<Record<string, number[][]>>(
     (acc, stored) => {
       const vec: number[] = JSON.parse(stored.embedding)
@@ -26,10 +26,9 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
     const faceEmbedding = faceEmbeddings[i]
     if (!faceEmbedding) return false
 
-    return Object.values(embeddingsByPerson).some((vecs) => {
-      const avgSim = vecs.reduce((sum, v) => sum + cosineSimilarity(faceEmbedding, v), 0) / vecs.length
-      return avgSim > FACE_SIMILARITY_THRESHOLD
-    })
+    return Object.values(embeddingsByPerson).some((vecs) =>
+      vecs.some((v) => cosineSimilarity(faceEmbedding, v) > FACE_SIMILARITY_THRESHOLD)
+    )
   })
 
   if (regionsToBlur.length === 0) return uri

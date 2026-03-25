@@ -12,7 +12,8 @@ export default function BatchProcessScreen() {
     try {
       const raw = Array.isArray(urisParam) ? urisParam[0] : urisParam
       return JSON.parse(decodeURIComponent(raw ?? '[]'))
-    } catch {
+    } catch (e) {
+      console.error('[BatchProcessScreen] Failed to parse uris param', { urisParam, error: e })
       return []
     }
   }, [urisParam])
@@ -22,14 +23,23 @@ export default function BatchProcessScreen() {
   // hasStarted で二重実行を防ぐ（ナビゲーション状態復元時の再マウントを含む）
   const hasStarted = useRef(false)
   useEffect(() => {
-    if (uris.length > 0 && !hasStarted.current) {
+    if (uris.length === 0) {
+      // URI のパース失敗など想定外の状態。ユーザーを元の画面に戻す
+      router.back()
+      return
+    }
+    if (!hasStarted.current) {
       hasStarted.current = true
       processImages(uris)
     }
-  }, [uris, processImages])
+  }, [uris, processImages, router])
 
   const handleSelectNew = () => {
     router.back()
+  }
+
+  const handleRetry = () => {
+    processImages(uris)
   }
 
   const progressMessage =
@@ -44,9 +54,11 @@ export default function BatchProcessScreen() {
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>処理に失敗しました</Text>
-          <Text style={styles.errorDetail}>{error.message}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleSelectNew}>
-            <Text style={styles.retryText}>別の画像を選択</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
+            <Text style={styles.primaryButtonText}>再試行</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleSelectNew}>
+            <Text style={styles.secondaryButtonText}>別の画像を選択</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -65,14 +77,19 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 12,
   },
-  errorText: { fontSize: 18, fontWeight: '600', color: '#FF3B30', textAlign: 'center' },
-  errorDetail: { fontSize: 13, color: '#aaa', textAlign: 'center' },
-  retryButton: {
-    marginTop: 16,
+  errorText: { fontSize: 18, fontWeight: '600', color: '#FF3B30', textAlign: 'center', marginBottom: 8 },
+  primaryButton: {
     backgroundColor: '#007AFF',
     paddingVertical: 12,
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
   },
-  retryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  secondaryButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  secondaryButtonText: { color: '#8E8E93', fontSize: 15 },
 })

@@ -6,6 +6,7 @@ import {
   StyleSheet,
   FlatList,
   Share,
+  Alert,
   TouchableOpacity,
 } from 'react-native'
 import type { ImageProcessResult } from '../model/useProcessImages'
@@ -16,13 +17,15 @@ interface ProcessBatchResultViewProps {
 }
 
 export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchResultViewProps) {
-  const errorCount = results.filter((r) => r.error).length
+  const errorCount = results.filter((r) => r.status === 'error').length
 
   const handleShare = async (uri: string) => {
     try {
       await Share.share({ url: uri })
-    } catch {
-      // share cancelled
+    } catch (e) {
+      // Share.share は iOS でキャンセル時に reject しない。ここに来るのは実際のエラー
+      console.error('[ProcessBatchResultView] Share failed', { uri, error: e })
+      Alert.alert('共有エラー', '画像を共有できませんでした')
     }
   }
 
@@ -42,7 +45,7 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
           <View style={styles.resultCard}>
             <View style={styles.imageWrapper}>
               <Image source={{ uri: item.resultUri }} style={styles.image} resizeMode="cover" />
-              {item.error && (
+              {item.status === 'error' && (
                 <View style={styles.errorOverlay}>
                   <Text style={styles.errorOverlayText}>処理失敗</Text>
                 </View>
@@ -50,7 +53,7 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
             </View>
             <View style={styles.cardFooter}>
               <Text style={styles.imageLabel}>{index + 1}枚目</Text>
-              {!item.error && (
+              {item.status === 'success' && (
                 <TouchableOpacity onPress={() => handleShare(item.resultUri)}>
                   <Text style={styles.shareText}>共有</Text>
                 </TouchableOpacity>

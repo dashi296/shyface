@@ -4,11 +4,9 @@ import { useMutation } from '@tanstack/react-query'
 import { getAllEmbeddings } from '@/shared/db'
 import { processImage } from './processImage'
 
-export type ImageProcessResult = {
-  originalUri: string
-  resultUri: string
-  error?: string
-}
+export type ImageProcessResult =
+  | { status: 'success'; originalUri: string; resultUri: string }
+  | { status: 'error'; originalUri: string; resultUri: string; error: string }
 
 export type ProcessProgress = {
   current: number
@@ -27,6 +25,8 @@ export function useProcessImages() {
 
   const mutation = useMutation({
     mutationFn: async (uris: string[]): Promise<ImageProcessResult[]> => {
+      if (uris.length === 0) return []
+
       // バッチ処理全体で共通のEmbeddingを事前取得（N回のDB読み込みを1回に削減）
       const storedEmbeddings = await getAllEmbeddings()
 
@@ -37,9 +37,11 @@ export function useProcessImages() {
         const uri = uris[i]
         try {
           const resultUri = await processImage(uri, storedEmbeddings)
-          results.push({ originalUri: uri, resultUri })
+          results.push({ status: 'success', originalUri: uri, resultUri })
         } catch (e) {
-          results.push({ originalUri: uri, resultUri: uri, error: (e as Error).message })
+          const message = e instanceof Error ? e.message : String(e)
+          console.error('[useProcessImages] Failed to process image', { uri, error: e })
+          results.push({ status: 'error', originalUri: uri, resultUri: uri, error: message })
         }
         if (isMountedRef.current) setProgress({ current: i + 1, total: uris.length })
       }
