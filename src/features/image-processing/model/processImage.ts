@@ -15,8 +15,16 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
   // person_id ごとにグループ化し、いずれか1件でも閾値を超えれば一致とみなす（CLAUDE.md 照合方針）
   const embeddingsByPerson = storedEmbeddings.reduce<Record<string, number[][]>>(
     (acc, stored) => {
-      const vec: number[] = JSON.parse(stored.embedding)
-      ;(acc[stored.person_id] ??= []).push(vec)
+      try {
+        const vec: number[] = JSON.parse(stored.embedding)
+        ;(acc[stored.person_id] ??= []).push(vec)
+      } catch (e) {
+        console.error('[processImage] Corrupt embedding record skipped', {
+          embeddingId: stored.id,
+          personId: stored.person_id,
+          error: e,
+        })
+      }
       return acc
     },
     {}

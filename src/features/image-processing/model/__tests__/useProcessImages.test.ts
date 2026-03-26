@@ -12,8 +12,6 @@ jest.mock('../processImage', () => ({
   processImage: jest.fn(),
 }))
 
-jest.spyOn(Alert, 'alert')
-
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: 0 }, mutations: { retry: 0 } } })
   return ({ children }: { children: React.ReactNode }) =>
@@ -21,7 +19,10 @@ function makeWrapper() {
 }
 
 describe('useProcessImages', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.spyOn(Alert, 'alert')
+  })
 
   it('returns success results for all images', async () => {
     const { getAllEmbeddings } = require('@/shared/db')
@@ -42,7 +43,7 @@ describe('useProcessImages', () => {
     ])
   })
 
-  it('continues processing remaining images when one fails', async () => {
+  it('continues processing remaining images when one fails, without showing Alert', async () => {
     const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
 
@@ -59,6 +60,8 @@ describe('useProcessImages', () => {
       { status: 'error', originalUri: 'file://a.jpg', resultUri: 'file://a.jpg', error: 'native error' },
       { status: 'success', originalUri: 'file://b.jpg', resultUri: 'file://result2.jpg' },
     ])
+    // 画像単位のエラーは onError (Alert) を発火しない。結果オブジェクトで通知する
+    expect(Alert.alert).not.toHaveBeenCalled()
   })
 
   it('enters error state and shows Alert when getAllEmbeddings fails', async () => {
@@ -126,8 +129,7 @@ describe('useProcessImages', () => {
     const item = result.current.data![0]
     expect(item.status).toBe('error')
     if (item.status === 'error') {
-      expect(typeof item.error).toBe('string')
-      expect(item.error).not.toBe('undefined')
+      expect(item.error).toBe('native bridge exception string')
     }
   })
 })

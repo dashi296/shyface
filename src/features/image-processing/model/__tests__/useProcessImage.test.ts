@@ -173,8 +173,8 @@ describe('useProcessImage', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
 
-  it('enters error state when stored embedding JSON is corrupt', async () => {
-    const { FaceDetector, FaceNet } = require('@/shared/native')
+  it('skips corrupt embedding records and returns original uri gracefully', async () => {
+    const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
     const { getAllEmbeddings } = require('@/shared/db')
 
     FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
@@ -186,6 +186,9 @@ describe('useProcessImage', () => {
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate('file://original.jpg') })
 
-    await waitFor(() => expect(result.current.isError).toBe(true))
+    // corrupt レコードはスキップされ処理が継続する（エラーにならない）
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toBe('file://original.jpg') // match なし → 元画像を返す
+    expect(Mosaic.apply).not.toHaveBeenCalled()
   })
 })

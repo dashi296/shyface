@@ -58,6 +58,9 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
                   <Text style={styles.shareText}>共有</Text>
                 </TouchableOpacity>
               )}
+              {item.status === 'error' && (
+                <Text style={styles.errorDetailText} numberOfLines={1}>{item.error}</Text>
+              )}
             </View>
           </View>
         )}
@@ -103,6 +106,7 @@ const styles = StyleSheet.create({
   },
   imageLabel: { color: '#8E8E93', fontSize: 13 },
   shareText: { color: '#007AFF', fontSize: 15, fontWeight: '600' },
+  errorDetailText: { color: '#FF3B30', fontSize: 11, flex: 1, marginLeft: 8, textAlign: 'right' },
   actions: { padding: 20 },
   button: {
     backgroundColor: '#007AFF',

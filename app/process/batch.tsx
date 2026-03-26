@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react'
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router'
 import { useProcessImages, ProcessBatchResultView } from '@/features/image-processing'
 import { LoadingOverlay } from '@/shared/ui'
@@ -24,7 +24,8 @@ export default function BatchProcessScreen() {
   const hasStarted = useRef(false)
   useEffect(() => {
     if (uris.length === 0) {
-      // URI のパース失敗など想定外の状態。ユーザーを元の画面に戻す
+      // URI のパース失敗など想定外の状態。通知してから元の画面に戻す
+      Alert.alert('エラー', '処理する画像を取得できませんでした。もう一度お試しください。')
       router.back()
       return
     }
@@ -54,7 +55,12 @@ export default function BatchProcessScreen() {
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>処理に失敗しました</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleRetry}>
+          <Text style={styles.errorDetail}>{error.message}</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, isPending && styles.disabledButton]}
+            onPress={handleRetry}
+            disabled={isPending}
+          >
             <Text style={styles.primaryButtonText}>再試行</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryButton} onPress={handleSelectNew}>
@@ -77,7 +83,9 @@ const styles = StyleSheet.create({
     padding: 32,
     gap: 12,
   },
-  errorText: { fontSize: 18, fontWeight: '600', color: '#FF3B30', textAlign: 'center', marginBottom: 8 },
+  errorText: { fontSize: 18, fontWeight: '600', color: '#FF3B30', textAlign: 'center' },
+  errorDetail: { fontSize: 13, color: '#8E8E93', textAlign: 'center', marginBottom: 8 },
+  disabledButton: { opacity: 0.5 },
   primaryButton: {
     backgroundColor: '#007AFF',
     paddingVertical: 12,

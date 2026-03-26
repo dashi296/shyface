@@ -29,6 +29,9 @@ export function useProcessImages() {
 
       // バッチ処理全体で共通のEmbeddingを事前取得（N回のDB読み込みを1回に削減）
       const storedEmbeddings = await getAllEmbeddings()
+      if (storedEmbeddings.length === 0) {
+        console.warn('[useProcessImages] getAllEmbeddings returned empty — no face matching will occur')
+      }
 
       if (isMountedRef.current) setProgress({ current: 0, total: uris.length })
 
@@ -49,6 +52,8 @@ export function useProcessImages() {
       return results
     },
     onError: (error: Error) => {
+      // 画像処理単位のエラーはループ内でキャッチし results に格納する。
+      // ここに到達するのは getAllEmbeddings など前処理の失敗時のみ。
       Alert.alert('処理エラー', error.message)
     },
   })

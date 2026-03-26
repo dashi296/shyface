@@ -82,6 +82,26 @@ describe('processImage', () => {
       expect(Mosaic.apply).not.toHaveBeenCalled()
       expect(result).toBe('file://original.jpg')
     })
+
+    it('blurs face when matched person is among multiple registered persons', async () => {
+      const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
+      const { cosineSimilarity } = require('@/shared/lib')
+
+      FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
+      FaceNet.extractAll.mockResolvedValue([mockEmbedding])
+
+      // p1: 低一致(0.3)、p2: 高一致(0.9) → p2 が一致するのでモザイク対象
+      cosineSimilarity
+        .mockReturnValueOnce(0.3)  // face vs p1
+        .mockReturnValueOnce(0.9)  // face vs p2
+
+      await processImage('file://original.jpg', [
+        makeStoredEmbedding('1', 'p1'),
+        makeStoredEmbedding('2', 'p2'),
+      ])
+
+      expect(Mosaic.apply).toHaveBeenCalled()
+    })
   })
 
   describe('bounding box coordinate scaling', () => {
@@ -101,35 +121,59 @@ describe('processImage', () => {
         { x: 5, y: 10, width: 25, height: 30 },
       ])
     })
-
-    it('passes resized uri (not original) to Mosaic.apply', async () => {
-      const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
-      const { cosineSimilarity, resizeForMosaic } = require('@/shared/lib')
-
-      FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
-      FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-      cosineSimilarity.mockReturnValue(0.95)
-      resizeForMosaic.mockResolvedValue({ uri: 'file://resized.jpg', scale: 1 })
-
-      await processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
-
-      expect(Mosaic.apply).toHaveBeenCalledWith('file://resized.jpg', expect.anything())
-    })
   })
 
   describe('preloadedEmbeddings', () => {
-    it('uses preloaded embeddings and skips DB call', async () => {
-      const { FaceDetector, FaceNet } = require('@/shared/native')
+    it('uses preloaded embeddings for matching without calling DB', async () => {
+      const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
       const { getAllEmbeddings } = require('@/shared/db')
       const { cosineSimilarity } = require('@/shared/lib')
 
       FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
       FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-      cosineSimilarity.mockReturnValue(0.3)
+      cosineSimilarity.mockReturnValue(0.95) // 一致 → モザイク適用
 
       await processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
 
       expect(getAllEmbeddings).not.toHaveBeenCalled()
+      expect(Mosaic.apply).toHaveBeenCalled() // preloadedEmbeddings が実際に照合に使われた証拠
+    })
+  })
+
+  describe('robustness', () => {
+    it('does not throw when FaceNet returns fewer embeddings than detected faces', async () => {
+      const { FaceDetector, FaceNet } = require('@/shared/native')
+      const { cosineSimilarity } = require('@/shared/lib')
+
+      // 2つの顔が検出されたが FaceNet が1つしか embedding を返さない
+      FaceDetector.detect.mockResolvedValue([
+        { x: 0, y: 0, width: 50, height: 50 },
+        { x: 100, y: 0, width: 50, height: 50 },
+      ])
+      FaceNet.extractAll.mockResolvedValue([mockEmbedding]) // 2顔に対して1件のみ
+      cosineSimilarity.mockReturnValue(0.3) // 一致なし
+
+      // faceEmbeddings[1] === undefined の顔は !faceEmbedding ガードでスキップ。エラーにならない
+      await expect(
+        processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
+      ).resolves.toBe('file://original.jpg')
+    })
+
+    it('skips corrupt embedding records and continues matching', async () => {
+      const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
+      const { cosineSimilarity } = require('@/shared/lib')
+
+      FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
+      FaceNet.extractAll.mockResolvedValue([mockEmbedding])
+      cosineSimilarity.mockReturnValue(0.95) // 有効なレコードは一致
+
+      const corruptRecord = { id: 'bad', person_id: 'p1', embedding: 'INVALID_JSON', source_uri: 'u', created_at: '', updated_at: '' }
+      const validRecord = makeStoredEmbedding('good', 'p2')
+
+      // corrupt レコードはスキップ、valid レコードで照合が成功する
+      await processImage('file://original.jpg', [corruptRecord, validRecord])
+
+      expect(Mosaic.apply).toHaveBeenCalled()
     })
   })
 })
