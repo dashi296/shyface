@@ -54,7 +54,9 @@ export function useProcessImages() {
     onError: (error: Error) => {
       // 画像処理単位のエラーはループ内でキャッチし results に格納する。
       // ここに到達するのは getAllEmbeddings など前処理の失敗時のみ。
-      Alert.alert('処理エラー', error.message)
+      // ネイティブ層が非 Error を throw する場合も考慮して防御的に処理する
+      console.error('[useProcessImages] Pre-processing step failed', { error })
+      Alert.alert('処理エラー', 'データの読み込みに失敗しました。アプリを再起動してもう一度お試しください。')
     },
   })
 

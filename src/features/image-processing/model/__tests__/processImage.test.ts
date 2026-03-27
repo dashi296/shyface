@@ -31,6 +31,31 @@ const makeStoredEmbedding = (id: string, personId: string) => ({
 describe('processImage', () => {
   beforeEach(() => jest.clearAllMocks())
 
+  it('returns original uri immediately when no faces are detected', async () => {
+    const { FaceDetector, FaceNet } = require('@/shared/native')
+
+    FaceDetector.detect.mockResolvedValue([])
+
+    const result = await processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
+
+    expect(result).toBe('file://original.jpg')
+    expect(FaceNet.extractAll).not.toHaveBeenCalled()
+  })
+
+  it('propagates error when Mosaic.apply fails', async () => {
+    const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
+    const { cosineSimilarity } = require('@/shared/lib')
+
+    FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
+    FaceNet.extractAll.mockResolvedValue([mockEmbedding])
+    cosineSimilarity.mockReturnValue(0.95)
+    Mosaic.apply.mockRejectedValueOnce(new Error('mosaic error'))
+
+    await expect(
+      processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
+    ).rejects.toThrow('mosaic error')
+  })
+
   describe('any-match semantics (CLAUDE.md 照合方針)', () => {
     it('blurs face when any single embedding exceeds threshold', async () => {
       const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
@@ -124,6 +149,21 @@ describe('processImage', () => {
   })
 
   describe('preloadedEmbeddings', () => {
+    it('calls getAllEmbeddings when preloadedEmbeddings is not provided', async () => {
+      const { FaceDetector, FaceNet } = require('@/shared/native')
+      const { getAllEmbeddings } = require('@/shared/db')
+      const { cosineSimilarity } = require('@/shared/lib')
+
+      FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
+      FaceNet.extractAll.mockResolvedValue([mockEmbedding])
+      getAllEmbeddings.mockResolvedValue([makeStoredEmbedding('1', 'p1')])
+      cosineSimilarity.mockReturnValue(0.3)
+
+      await processImage('file://original.jpg') // 第2引数なし
+
+      expect(getAllEmbeddings).toHaveBeenCalledTimes(1)
+    })
+
     it('uses preloaded embeddings for matching without calling DB', async () => {
       const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
       const { getAllEmbeddings } = require('@/shared/db')
@@ -141,9 +181,8 @@ describe('processImage', () => {
   })
 
   describe('robustness', () => {
-    it('does not throw when FaceNet returns fewer embeddings than detected faces', async () => {
+    it('throws when FaceNet returns fewer embeddings than detected faces', async () => {
       const { FaceDetector, FaceNet } = require('@/shared/native')
-      const { cosineSimilarity } = require('@/shared/lib')
 
       // 2つの顔が検出されたが FaceNet が1つしか embedding を返さない
       FaceDetector.detect.mockResolvedValue([
@@ -151,12 +190,11 @@ describe('processImage', () => {
         { x: 100, y: 0, width: 50, height: 50 },
       ])
       FaceNet.extractAll.mockResolvedValue([mockEmbedding]) // 2顔に対して1件のみ
-      cosineSimilarity.mockReturnValue(0.3) // 一致なし
 
-      // faceEmbeddings[1] === undefined の顔は !faceEmbedding ガードでスキップ。エラーにならない
+      // embedding 数不一致はサイレントスキップではなく明示的エラーにする（プライバシー保護）
       await expect(
         processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
-      ).resolves.toBe('file://original.jpg')
+      ).rejects.toThrow('FaceNet embedding count mismatch')
     })
 
     it('skips corrupt embedding records and continues matching', async () => {

@@ -6,7 +6,9 @@ export function useProcessImage() {
   return useMutation({
     mutationFn: (uri: string) => processImage(uri),
     onError: (error: Error) => {
-      Alert.alert('処理エラー', error.message)
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('[useProcessImage] processImage failed', { error })
+      Alert.alert('処理エラー', message)
     },
   })
 }

@@ -8,36 +8,46 @@ export default function HomeScreen() {
   const router = useRouter()
 
   const handlePickImage = useCallback(async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('権限が必要です', 'フォトライブラリへのアクセスを許可してください')
-      return
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-      allowsMultipleSelection: true,
-      selectionLimit: 20,
-    })
-    if (!result.canceled && result.assets.length > 0) {
-      const uris = result.assets.map((a) => a.uri)
-      router.push({
-        pathname: '/process/batch',
-        params: { uris: encodeURIComponent(JSON.stringify(uris)) },
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('権限が必要です', 'フォトライブラリへのアクセスを許可してください')
+        return
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        allowsMultipleSelection: true,
+        selectionLimit: 20,
       })
+      if (!result.canceled && result.assets.length > 0) {
+        const uris = result.assets.map((a) => a.uri)
+        router.push({
+          pathname: '/process/batch',
+          params: { uris: encodeURIComponent(JSON.stringify(uris)) },
+        })
+      }
+    } catch (e: unknown) {
+      console.error('[HomeScreen] launchImageLibraryAsync failed', { error: e })
+      Alert.alert('エラー', '画像を選択できませんでした。もう一度お試しください。')
     }
   }, [router])
 
   const handleCamera = useCallback(async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync()
-    if (status !== 'granted') {
-      Alert.alert('権限が必要です', 'カメラへのアクセスを許可してください')
-      return
-    }
-    const result = await ImagePicker.launchCameraAsync({ quality: 1 })
-    if (!result.canceled && result.assets.length > 0) {
-      const uri = result.assets[0].uri
-      router.push({ pathname: '/process/[imageId]', params: { imageId: encodeURIComponent(uri) } })
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('権限が必要です', 'カメラへのアクセスを許可してください')
+        return
+      }
+      const result = await ImagePicker.launchCameraAsync({ quality: 1 })
+      if (!result.canceled && result.assets.length > 0) {
+        const uri = result.assets[0].uri
+        router.push({ pathname: '/process/[imageId]', params: { imageId: encodeURIComponent(uri) } })
+      }
+    } catch (e: unknown) {
+      console.error('[HomeScreen] launchCameraAsync failed', { error: e })
+      Alert.alert('エラー', '写真を撮影できませんでした。もう一度お試しください。')
     }
   }, [router])
 

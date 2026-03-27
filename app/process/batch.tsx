@@ -9,20 +9,31 @@ export default function BatchProcessScreen() {
   const router = useRouter()
 
   const uris = useMemo<string[]>(() => {
+    const raw = Array.isArray(urisParam) ? urisParam[0] : urisParam
+    if (!raw) {
+      console.error('[BatchProcessScreen] uris param is missing', { urisParam })
+      return []
+    }
     try {
-      const raw = Array.isArray(urisParam) ? urisParam[0] : urisParam
-      return JSON.parse(decodeURIComponent(raw ?? '[]'))
+      const parsed: unknown = JSON.parse(decodeURIComponent(raw))
+      if (!Array.isArray(parsed)) {
+        console.error('[BatchProcessScreen] uris param parsed to non-array', { parsed, urisParam })
+        return []
+      }
+      return parsed as string[]
     } catch (e) {
       console.error('[BatchProcessScreen] Failed to parse uris param', { urisParam, error: e })
       return []
     }
   }, [urisParam])
 
-  const { mutate: processImages, isPending, data: results, error, progress } = useProcessImages()
+  const { mutate: processImages, reset: resetMutation, isPending, data: results, error, progress } = useProcessImages()
 
   // hasStarted で二重実行を防ぐ（ナビゲーション状態復元時の再マウントを含む）
   const hasStarted = useRef(false)
   useEffect(() => {
+    // urisParam が undefined の場合はまだ Expo Router がパラメータをハイドレート中のため待機する
+    if (urisParam == null) return
     if (uris.length === 0) {
       // URI のパース失敗など想定外の状態。通知してから元の画面に戻す
       Alert.alert('エラー', '処理する画像を取得できませんでした。もう一度お試しください。')
@@ -33,13 +44,15 @@ export default function BatchProcessScreen() {
       hasStarted.current = true
       processImages(uris)
     }
-  }, [uris, processImages, router])
+  }, [uris, urisParam, processImages, router])
 
   const handleSelectNew = () => {
     router.back()
   }
 
   const handleRetry = () => {
+    if (isPending) return
+    resetMutation()
     processImages(uris)
   }
 
@@ -55,7 +68,7 @@ export default function BatchProcessScreen() {
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>処理に失敗しました</Text>
-          <Text style={styles.errorDetail}>{error.message}</Text>
+          <Text style={styles.errorDetail}>画像処理の準備に失敗しました。アプリを再起動してもう一度お試しください。</Text>
           <TouchableOpacity
             style={[styles.primaryButton, isPending && styles.disabledButton]}
             onPress={handleRetry}

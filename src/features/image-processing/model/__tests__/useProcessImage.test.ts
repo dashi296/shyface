@@ -19,7 +19,7 @@ jest.mock('@/shared/db', () => ({
 jest.mock('@/shared/lib', () => ({
   cosineSimilarity: jest.fn(),
   cropFace: jest.fn().mockImplementation((_uri, _box) => Promise.resolve('file://cropped.jpg')),
-  resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://original.jpg', scale: 1 }),
+  resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://resized.jpg', scale: 1 }),
 }))
 
 function makeWrapper() {
@@ -80,7 +80,7 @@ describe('useProcessImage', () => {
     act(() => { result.current.mutate('file://original.jpg') })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(Mosaic.apply).toHaveBeenCalledWith('file://original.jpg', [box])
+    expect(Mosaic.apply).toHaveBeenCalledWith('file://resized.jpg', [box])
     expect(result.current.data).toBe('file://blurred.jpg')
   })
 
@@ -145,7 +145,7 @@ describe('useProcessImage', () => {
     act(() => { result.current.mutate('file://original.jpg') })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(Mosaic.apply).toHaveBeenCalledWith('file://original.jpg', [boxA])
+    expect(Mosaic.apply).toHaveBeenCalledWith('file://resized.jpg', [boxA])
     expect(result.current.data).toBe('file://blurred.jpg')
   })
 

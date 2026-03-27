@@ -21,9 +21,16 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
 
   const handleShare = async (uri: string) => {
     try {
-      await Share.share({ url: uri })
+      const result = await Share.share({ url: uri })
+      if (result.action === 'dismissedAction') return
     } catch (e) {
-      // Share.share は iOS でキャンセル時に reject しない。ここに来るのは実際のエラー
+      // iOS ではキャンセル時に reject しない。
+      // Android ではキャンセル時に reject することがあるため、キャンセルと実際のエラーを区別する。
+      const message = e instanceof Error ? e.message : String(e)
+      if (message.toLowerCase().includes('cancel')) {
+        console.warn('[ProcessBatchResultView] Share dismissed via exception (Android)', { uri, error: e })
+        return
+      }
       console.error('[ProcessBatchResultView] Share failed', { uri, error: e })
       Alert.alert('共有エラー', '画像を共有できませんでした')
     }
@@ -59,7 +66,7 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
                 </TouchableOpacity>
               )}
               {item.status === 'error' && (
-                <Text style={styles.errorDetailText} numberOfLines={1}>{item.error}</Text>
+                <Text style={styles.errorDetailText} numberOfLines={1}>処理に失敗しました</Text>
               )}
             </View>
           </View>

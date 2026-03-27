@@ -24,6 +24,10 @@ describe('useProcessImages', () => {
     jest.spyOn(Alert, 'alert')
   })
 
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
   it('returns success results for all images', async () => {
     const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
@@ -72,7 +76,25 @@ describe('useProcessImages', () => {
     act(() => { result.current.mutate(['file://a.jpg']) })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
-    expect(Alert.alert).toHaveBeenCalledWith('処理エラー', 'db error')
+    expect(Alert.alert).toHaveBeenCalledWith('処理エラー', 'データの読み込みに失敗しました。アプリを再起動してもう一度お試しください。')
+  })
+
+  it('passes preloaded embeddings to processImage for each image in the batch', async () => {
+    const { getAllEmbeddings } = require('@/shared/db')
+    const { processImage } = require('../processImage')
+
+    const storedEmbeddings = [
+      { id: '1', person_id: 'p1', embedding: JSON.stringify(Array(128).fill(0.5)), source_uri: 'u', created_at: '', updated_at: '' },
+    ]
+    getAllEmbeddings.mockResolvedValue(storedEmbeddings)
+    processImage.mockResolvedValue('file://result.jpg')
+
+    const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
+    act(() => { result.current.mutate(['file://a.jpg', 'file://b.jpg']) })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(processImage).toHaveBeenCalledWith('file://a.jpg', storedEmbeddings)
+    expect(processImage).toHaveBeenCalledWith('file://b.jpg', storedEmbeddings)
   })
 
   it('calls getAllEmbeddings only once for a batch of images', async () => {
@@ -112,6 +134,28 @@ describe('useProcessImages', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.progress).toEqual({ current: 2, total: 2 })
+  })
+
+  it('resolves as success (not error) even when all images fail', async () => {
+    const { getAllEmbeddings } = require('@/shared/db')
+    const { processImage } = require('../processImage')
+
+    getAllEmbeddings.mockResolvedValue([])
+    processImage
+      .mockRejectedValueOnce(new Error('fail1'))
+      .mockRejectedValueOnce(new Error('fail2'))
+
+    const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
+    act(() => { result.current.mutate(['file://a.jpg', 'file://b.jpg']) })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.isError).toBe(false)
+    expect(result.current.data).toEqual([
+      { status: 'error', originalUri: 'file://a.jpg', resultUri: 'file://a.jpg', error: 'fail1' },
+      { status: 'error', originalUri: 'file://b.jpg', resultUri: 'file://b.jpg', error: 'fail2' },
+    ])
+    // 画像単位の全失敗でも onError (Alert) は発火しない
+    expect(Alert.alert).not.toHaveBeenCalled()
   })
 
   it('stores error message as string even for non-Error throws', async () => {
