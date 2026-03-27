@@ -42,14 +42,18 @@ export function RegisterFaceSheet({ visible, onClose }: RegisterFaceSheetProps) 
   }, [reset, onClose])
 
   const handleAddPhoto = useCallback(async () => {
+    const remaining = FACE_REGISTER_MAX_PHOTOS - photos.length
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 1,
+      allowsMultipleSelection: true,
+      selectionLimit: remaining,
     })
     if (!result.canceled && result.assets.length > 0) {
-      setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, FACE_REGISTER_MAX_PHOTOS))
+      const newUris = result.assets.map((a) => a.uri)
+      setPhotos((prev) => [...prev, ...newUris].slice(0, FACE_REGISTER_MAX_PHOTOS))
     }
-  }, [])
+  }, [photos.length])
 
   const handleCamera = useCallback(async () => {
     try {
