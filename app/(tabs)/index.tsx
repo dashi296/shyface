@@ -9,13 +9,8 @@ export default function HomeScreen() {
 
   const handlePickImage = useCallback(async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync()
-      if (status !== 'granted') {
-        Alert.alert('権限が必要です', 'フォトライブラリへのアクセスを許可してください')
-        return
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         quality: 1,
         allowsMultipleSelection: true,
         selectionLimit: 20,

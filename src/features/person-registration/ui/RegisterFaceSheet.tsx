@@ -45,7 +45,7 @@ export function RegisterFaceSheet({ visible, onClose }: RegisterFaceSheetProps) 
     try {
       const remaining = FACE_REGISTER_MAX_PHOTOS - photos.length
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         quality: 1,
         allowsMultipleSelection: true,
         selectionLimit: remaining,
