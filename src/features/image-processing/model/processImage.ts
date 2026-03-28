@@ -2,7 +2,7 @@ import { FaceDetector, FaceNet, Mosaic } from '@/shared/native'
 import { getAllEmbeddings } from '@/shared/db'
 import type { Embedding } from '@/shared/db'
 import { cosineSimilarity, cropFace, resizeForMosaic } from '@/shared/lib'
-import { FACE_SIMILARITY_THRESHOLD } from '@/shared/config'
+import { FACE_SIMILARITY_THRESHOLD, FACE_MATCH_TOP_K } from '@/shared/config'
 
 export async function processImage(uri: string, preloadedEmbeddings?: Embedding[]): Promise<string> {
   const boxes = await FaceDetector.detect(uri)
@@ -39,10 +39,16 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
     {}
   )
 
+  // person ごとに上位 FACE_MATCH_TOP_K 件のスコア平均が閾値を超えれば一致とみなす（外れ値に強い）
   const regionsToBlur = boxes.filter((_, i) =>
-    Object.values(embeddingsByPerson).some((vecs) =>
-      vecs.some((v) => cosineSimilarity(faceEmbeddings[i], v) > FACE_SIMILARITY_THRESHOLD)
-    )
+    Object.values(embeddingsByPerson).some((vecs) => {
+      const sorted = vecs
+        .map((v) => cosineSimilarity(faceEmbeddings[i], v))
+        .sort((a, b) => b - a)
+      const topK = sorted.slice(0, FACE_MATCH_TOP_K)
+      const avg = topK.reduce((sum, s) => sum + s, 0) / topK.length
+      return avg > FACE_SIMILARITY_THRESHOLD
+    })
   )
 
   if (regionsToBlur.length === 0) return uri

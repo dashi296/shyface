@@ -71,17 +71,16 @@ describe('processImage', () => {
     ).rejects.toThrow('mosaic error')
   })
 
-  describe('any-match semantics (CLAUDE.md 照合方針)', () => {
-    it('blurs face when any single embedding exceeds threshold', async () => {
+  describe('top-K average matching semantics', () => {
+    it('blurs face when top-K average score exceeds threshold', async () => {
       const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
       const { cosineSimilarity } = require('@/shared/lib')
 
       FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
       FaceNet.extractAll.mockResolvedValue([mockEmbedding])
 
-      // 1人につき2枚登録: 1枚は高一致(0.9)・1枚は低一致(0.3) → any-match なのでモザイク対象
-      // 平均(0.6)は THRESHOLD と等しく、平均判定なら対象外になってしまう
-      cosineSimilarity.mockReturnValueOnce(0.9).mockReturnValueOnce(0.3)
+      // 1人につき2枚登録: 上位2件の平均 = (0.9 + 0.8) / 2 = 0.85 > THRESHOLD → モザイク対象
+      cosineSimilarity.mockReturnValueOnce(0.9).mockReturnValueOnce(0.8)
 
       await processImage('file://original.jpg', [
         makeStoredEmbedding('1', 'p1'),
@@ -89,6 +88,26 @@ describe('processImage', () => {
       ])
 
       expect(Mosaic.apply).toHaveBeenCalled()
+    })
+
+    it('does not blur face when single high match is averaged down by low match', async () => {
+      const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
+      const { cosineSimilarity } = require('@/shared/lib')
+
+      FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
+      FaceNet.extractAll.mockResolvedValue([mockEmbedding])
+
+      // 1人につき2枚登録: 上位2件の平均 = (0.9 + 0.3) / 2 = 0.6 < THRESHOLD → モザイク対象外
+      // any-match では一致になっていたが、外れ値に強い平均方式では非一致
+      cosineSimilarity.mockReturnValueOnce(0.9).mockReturnValueOnce(0.3)
+
+      const result = await processImage('file://original.jpg', [
+        makeStoredEmbedding('1', 'p1'),
+        makeStoredEmbedding('2', 'p1'),
+      ])
+
+      expect(Mosaic.apply).not.toHaveBeenCalled()
+      expect(result).toBe('file://original.jpg')
     })
 
     it('does not blur face when no embedding exceeds threshold', async () => {
