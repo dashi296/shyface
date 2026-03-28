@@ -19,7 +19,7 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
 
   const storedEmbeddings = preloadedEmbeddings ?? (await getAllEmbeddings())
 
-  // person_id ごとにグループ化し、いずれか1件でも閾値を超えれば一致とみなす（CLAUDE.md 照合方針）
+  // person_id ごとにグループ化し、上位 K 件のスコア平均で照合する
   const embeddingsByPerson = storedEmbeddings.reduce<Record<string, number[][]>>(
     (acc, stored) => {
       let vec: number[]
