@@ -66,6 +66,11 @@ export const FaceNet = {
   },
 
   extractAll: async (uris: string[]): Promise<number[][]> => {
-    return Promise.all(uris.map((uri) => FaceNet.extractEmbedding(uri)))
+    // TFLite モデルは並列 run() をサポートしないため逐次実行する
+    const results: number[][] = []
+    for (const uri of uris) {
+      results.push(await FaceNet.extractEmbedding(uri))
+    }
+    return results
   },
 }
