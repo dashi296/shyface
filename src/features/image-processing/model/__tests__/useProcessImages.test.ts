@@ -3,10 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { Alert } from 'react-native'
 import { useProcessImages } from '../useProcessImages'
+import { insertPerson, insertEmbedding } from '@/shared/db'
+import * as dbModule from '@/shared/db'
 
-jest.mock('@/shared/db', () => ({
-  getAllEmbeddings: jest.fn(),
-}))
+jest.mock('@/shared/db', () => ({ __esModule: true, ...jest.requireActual('@/shared/db') }))
 
 jest.mock('../processImage', () => ({
   processImage: jest.fn(),
@@ -16,6 +16,20 @@ function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: 0 }, mutations: { retry: 0 } } })
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: qc }, children)
+}
+
+const NOW = '2026-01-01T00:00:00.000Z'
+
+async function seedEmbedding() {
+  await insertPerson({ id: 'p1', name: 'Test', memo: null, created_at: NOW, updated_at: NOW })
+  await insertEmbedding({
+    id: 'e1',
+    person_id: 'p1',
+    embedding: JSON.stringify(Array(128).fill(0.5)),
+    source_uri: 'u',
+    created_at: NOW,
+    updated_at: NOW,
+  })
 }
 
 describe('useProcessImages', () => {
@@ -29,10 +43,7 @@ describe('useProcessImages', () => {
   })
 
   it('returns success results for all images', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     processImage
       .mockResolvedValueOnce('file://result1.jpg')
       .mockResolvedValueOnce('file://result2.jpg')
@@ -48,10 +59,7 @@ describe('useProcessImages', () => {
   })
 
   it('continues processing remaining images when one fails, without showing Alert', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     processImage
       .mockRejectedValueOnce(new Error('native error'))
       .mockResolvedValueOnce('file://result2.jpg')
@@ -69,8 +77,7 @@ describe('useProcessImages', () => {
   })
 
   it('enters error state and shows Alert when getAllEmbeddings fails', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
-    getAllEmbeddings.mockRejectedValue(new Error('db error'))
+    jest.spyOn(dbModule, 'getAllEmbeddings').mockRejectedValueOnce(new Error('db error'))
 
     const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate(['file://a.jpg']) })
@@ -80,53 +87,50 @@ describe('useProcessImages', () => {
   })
 
   it('passes preloaded embeddings to processImage for each image in the batch', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
+    await seedEmbedding()
     const { processImage } = require('../processImage')
-
-    const storedEmbeddings = [
-      { id: '1', person_id: 'p1', embedding: JSON.stringify(Array(128).fill(0.5)), source_uri: 'u', created_at: '', updated_at: '' },
-    ]
-    getAllEmbeddings.mockResolvedValue(storedEmbeddings)
     processImage.mockResolvedValue('file://result.jpg')
 
     const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate(['file://a.jpg', 'file://b.jpg']) })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(processImage).toHaveBeenCalledWith('file://a.jpg', storedEmbeddings)
-    expect(processImage).toHaveBeenCalledWith('file://b.jpg', storedEmbeddings)
+    // DB から取得した embeddings が processImage の第2引数として渡されていることを確認
+    expect(processImage).toHaveBeenCalledWith(
+      'file://a.jpg',
+      expect.arrayContaining([expect.objectContaining({ id: 'e1', person_id: 'p1' })])
+    )
+    expect(processImage).toHaveBeenCalledWith(
+      'file://b.jpg',
+      expect.arrayContaining([expect.objectContaining({ id: 'e1', person_id: 'p1' })])
+    )
   })
 
   it('calls getAllEmbeddings only once for a batch of images', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
+    const getAllEmbeddingsSpy = jest.spyOn(dbModule, 'getAllEmbeddings')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     processImage.mockResolvedValue('file://result.jpg')
 
     const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate(['file://a.jpg', 'file://b.jpg', 'file://c.jpg']) })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(getAllEmbeddings).toHaveBeenCalledTimes(1)
+    expect(getAllEmbeddingsSpy).toHaveBeenCalledTimes(1)
   })
 
   it('returns empty results immediately without calling getAllEmbeddings for empty input', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
+    const getAllEmbeddingsSpy = jest.spyOn(dbModule, 'getAllEmbeddings')
 
     const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate([]) })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual([])
-    expect(getAllEmbeddings).not.toHaveBeenCalled()
+    expect(getAllEmbeddingsSpy).not.toHaveBeenCalled()
   })
 
   it('tracks progress to total by end of batch', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     processImage.mockResolvedValue('file://result.jpg')
 
     const { result } = renderHook(() => useProcessImages(), { wrapper: makeWrapper() })
@@ -137,10 +141,7 @@ describe('useProcessImages', () => {
   })
 
   it('resolves as success (not error) even when all images fail', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     processImage
       .mockRejectedValueOnce(new Error('fail1'))
       .mockRejectedValueOnce(new Error('fail2'))
@@ -159,10 +160,7 @@ describe('useProcessImages', () => {
   })
 
   it('stores error message as string even for non-Error throws', async () => {
-    const { getAllEmbeddings } = require('@/shared/db')
     const { processImage } = require('../processImage')
-
-    getAllEmbeddings.mockResolvedValue([])
     // NativeModules が Error インスタンスでなく文字列を throw する場合
     processImage.mockRejectedValueOnce('native bridge exception string')
 

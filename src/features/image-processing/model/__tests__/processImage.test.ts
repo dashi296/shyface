@@ -1,5 +1,9 @@
 import { processImage } from '../processImage'
 import { FACE_SIMILARITY_THRESHOLD as THRESHOLD } from '@/shared/config'
+import { insertPerson, insertEmbedding } from '@/shared/db'
+import * as dbModule from '@/shared/db'
+
+jest.mock('@/shared/db', () => ({ __esModule: true, ...jest.requireActual('@/shared/db') }))
 
 const mockEmbedding = Array(128).fill(0.5)
 
@@ -9,27 +13,38 @@ jest.mock('@/shared/native', () => ({
   Mosaic: { apply: jest.fn().mockResolvedValue('file://blurred.jpg') },
 }))
 
-jest.mock('@/shared/db', () => ({
-  getAllEmbeddings: jest.fn(),
-}))
-
 jest.mock('@/shared/lib', () => ({
   cosineSimilarity: jest.fn(),
   cropFace: jest.fn().mockImplementation((_uri, _box) => Promise.resolve('file://cropped.jpg')),
   resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://resized.jpg', scale: 1 }),
 }))
 
-const makeStoredEmbedding = (id: string, personId: string) => ({
-  id,
-  person_id: personId,
-  embedding: JSON.stringify(mockEmbedding),
-  source_uri: 'u',
-  created_at: '',
-  updated_at: '',
-})
+const NOW = '2026-01-01T00:00:00.000Z'
+
+function makeStoredEmbedding(id: string, personId: string) {
+  return {
+    id,
+    person_id: personId,
+    embedding: JSON.stringify(mockEmbedding),
+    source_uri: 'u',
+    created_at: NOW,
+    updated_at: NOW,
+  }
+}
+
+async function seedEmbedding(id: string, personId: string) {
+  await insertPerson({ id: personId, name: 'Test', memo: null, created_at: NOW, updated_at: NOW })
+  await insertEmbedding(makeStoredEmbedding(id, personId))
+}
 
 describe('processImage', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
 
   it('returns original uri immediately when no faces are detected', async () => {
     const { FaceDetector, FaceNet } = require('@/shared/native')
@@ -150,24 +165,24 @@ describe('processImage', () => {
 
   describe('preloadedEmbeddings', () => {
     it('calls getAllEmbeddings when preloadedEmbeddings is not provided', async () => {
+      await seedEmbedding('1', 'p1')
       const { FaceDetector, FaceNet } = require('@/shared/native')
-      const { getAllEmbeddings } = require('@/shared/db')
       const { cosineSimilarity } = require('@/shared/lib')
+      const getAllEmbeddingsSpy = jest.spyOn(dbModule, 'getAllEmbeddings')
 
       FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
       FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-      getAllEmbeddings.mockResolvedValue([makeStoredEmbedding('1', 'p1')])
       cosineSimilarity.mockReturnValue(0.3)
 
       await processImage('file://original.jpg') // 第2引数なし
 
-      expect(getAllEmbeddings).toHaveBeenCalledTimes(1)
+      expect(getAllEmbeddingsSpy).toHaveBeenCalledTimes(1)
     })
 
     it('uses preloaded embeddings for matching without calling DB', async () => {
       const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
-      const { getAllEmbeddings } = require('@/shared/db')
       const { cosineSimilarity } = require('@/shared/lib')
+      const getAllEmbeddingsSpy = jest.spyOn(dbModule, 'getAllEmbeddings')
 
       FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
       FaceNet.extractAll.mockResolvedValue([mockEmbedding])
@@ -175,7 +190,7 @@ describe('processImage', () => {
 
       await processImage('file://original.jpg', [makeStoredEmbedding('1', 'p1')])
 
-      expect(getAllEmbeddings).not.toHaveBeenCalled()
+      expect(getAllEmbeddingsSpy).not.toHaveBeenCalled()
       expect(Mosaic.apply).toHaveBeenCalled() // preloadedEmbeddings が実際に照合に使われた証拠
     })
   })
