@@ -53,8 +53,8 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
             <View style={styles.imageWrapper}>
               <Image source={{ uri: item.resultUri }} style={styles.image} resizeMode="cover" />
               {item.status === 'error' && (
-                <View style={styles.errorOverlay}>
-                  <Text style={styles.errorOverlayText}>処理失敗</Text>
+                <View style={styles.errorBadge}>
+                  <Text style={styles.errorBadgeText}>未処理</Text>
                 </View>
               )}
             </View>
@@ -65,10 +65,12 @@ export function ProcessBatchResultView({ results, onSelectNew }: ProcessBatchRes
                   <Text style={styles.shareText}>共有</Text>
                 </TouchableOpacity>
               )}
-              {item.status === 'error' && (
-                <Text style={styles.errorDetailText} numberOfLines={1}>処理に失敗しました</Text>
-              )}
             </View>
+            {item.status === 'error' && (
+              <View style={styles.errorMessageRow}>
+                <Text style={styles.errorMessageText} numberOfLines={2}>{item.error}</Text>
+              </View>
+            )}
           </View>
         )}
       />
@@ -98,13 +100,16 @@ const styles = StyleSheet.create({
   },
   imageWrapper: { aspectRatio: 4 / 3, position: 'relative' },
   image: { width: '100%', height: '100%' },
-  errorOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
+  errorBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
   },
-  errorOverlayText: { color: '#FF3B30', fontSize: 16, fontWeight: '700' },
+  errorBadgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -113,7 +118,11 @@ const styles = StyleSheet.create({
   },
   imageLabel: { color: '#8E8E93', fontSize: 13 },
   shareText: { color: '#007AFF', fontSize: 15, fontWeight: '600' },
-  errorDetailText: { color: '#FF3B30', fontSize: 11, flex: 1, marginLeft: 8, textAlign: 'right' },
+  errorMessageRow: {
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  errorMessageText: { color: '#FF3B30', fontSize: 12 },
   actions: { padding: 20 },
   button: {
     backgroundColor: '#007AFF',
