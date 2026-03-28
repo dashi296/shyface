@@ -323,7 +323,7 @@ CREATE TABLE embeddings (
 ### 照合方針
 
 - 1人の人物に対して複数の embedding を全件保存する（上限3枚）
-- 照合時は登録済み全 embedding と比較し、いずれか1件でも `FACE_SIMILARITY_THRESHOLD` を超えれば一致とみなす
+- 照合時は登録済み全 embedding と比較し、person ごとに上位 `FACE_MATCH_TOP_K` 件のコサイン類似度スコアを平均し、その平均が `FACE_SIMILARITY_THRESHOLD` を超えれば一致とみなす（外れ値 embedding に強い）
 
 ---
 
