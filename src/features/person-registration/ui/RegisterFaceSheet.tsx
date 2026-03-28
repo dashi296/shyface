@@ -42,14 +42,23 @@ export function RegisterFaceSheet({ visible, onClose }: RegisterFaceSheetProps) 
   }, [reset, onClose])
 
   const handleAddPhoto = useCallback(async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    })
-    if (!result.canceled && result.assets.length > 0) {
-      setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, FACE_REGISTER_MAX_PHOTOS))
+    try {
+      const remaining = FACE_REGISTER_MAX_PHOTOS - photos.length
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        quality: 1,
+        allowsMultipleSelection: true,
+        selectionLimit: remaining,
+      })
+      if (!result.canceled && result.assets.length > 0) {
+        const newUris = result.assets.map((a) => a.uri)
+        setPhotos((prev) => [...prev, ...newUris].slice(0, FACE_REGISTER_MAX_PHOTOS))
+      }
+    } catch (e: unknown) {
+      console.error('[RegisterFaceSheet] launchImageLibraryAsync failed', { error: e })
+      Alert.alert('ライブラリエラー', '写真を選択できませんでした。もう一度お試しください。')
     }
-  }, [])
+  }, [photos.length])
 
   const handleCamera = useCallback(async () => {
     try {
@@ -63,8 +72,8 @@ export function RegisterFaceSheet({ visible, onClose }: RegisterFaceSheetProps) 
         setPhotos((prev) => [...prev, result.assets[0].uri].slice(0, FACE_REGISTER_MAX_PHOTOS))
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      Alert.alert('カメラエラー', msg)
+      console.error('[RegisterFaceSheet] launchCameraAsync failed', { error: e })
+      Alert.alert('カメラエラー', '写真を撮影できませんでした。もう一度お試しください。')
     }
   }, [])
 

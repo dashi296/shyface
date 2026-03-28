@@ -2,10 +2,10 @@ import { renderHook, act, waitFor } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { useDeletePerson } from '../useDeletePerson'
+import { insertPerson, getAllPersons } from '@/shared/db'
+import * as dbModule from '@/shared/db'
 
-jest.mock('@/shared/db', () => ({
-  deletePerson: jest.fn(),
-}))
+jest.mock('@/shared/db', () => ({ __esModule: true, ...jest.requireActual('@/shared/db') }))
 
 function makeWrapper(qc: QueryClient) {
   return ({ children }: { children: React.ReactNode }) =>
@@ -16,12 +16,13 @@ function makeQc() {
   return new QueryClient({ defaultOptions: { queries: { retry: 0 }, mutations: { retry: 0 } } })
 }
 
+const NOW = '2026-01-01T00:00:00.000Z'
+
 describe('useDeletePerson', () => {
-  beforeEach(() => { jest.clearAllMocks() })
+  afterEach(() => jest.restoreAllMocks())
 
   it('calls deletePerson with correct id', async () => {
-    const { deletePerson } = require('@/shared/db')
-    deletePerson.mockResolvedValue(undefined)
+    await insertPerson({ id: 'person-id-1', name: 'Test', memo: null, created_at: NOW, updated_at: NOW })
 
     const qc = makeQc()
     const { result } = renderHook(() => useDeletePerson(), { wrapper: makeWrapper(qc) })
@@ -29,12 +30,12 @@ describe('useDeletePerson', () => {
     act(() => { result.current.mutate('person-id-1') })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(deletePerson).toHaveBeenCalledWith('person-id-1')
+    const persons = await getAllPersons()
+    expect(persons).toHaveLength(0)
   })
 
   it('invalidates persons query on success', async () => {
-    const { deletePerson } = require('@/shared/db')
-    deletePerson.mockResolvedValue(undefined)
+    await insertPerson({ id: 'person-id-1', name: 'Test', memo: null, created_at: NOW, updated_at: NOW })
 
     const qc = makeQc()
     const invalidateSpy = jest.spyOn(qc, 'invalidateQueries')
@@ -47,8 +48,7 @@ describe('useDeletePerson', () => {
   })
 
   it('enters error state when deletePerson fails', async () => {
-    const { deletePerson } = require('@/shared/db')
-    deletePerson.mockRejectedValue(new Error('db error'))
+    jest.spyOn(dbModule, 'deletePerson').mockRejectedValueOnce(new Error('db error'))
 
     const qc = makeQc()
     const { result } = renderHook(() => useDeletePerson(), { wrapper: makeWrapper(qc) })

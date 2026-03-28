@@ -2,6 +2,10 @@ import { renderHook, act, waitFor } from '@testing-library/react-native'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { useRegisterPerson } from '../useRegisterPerson'
+import { getAllPersons, getEmbeddingsByPersonId } from '@/shared/db'
+import * as dbModule from '@/shared/db'
+
+jest.mock('@/shared/db', () => ({ __esModule: true, ...jest.requireActual('@/shared/db') }))
 
 jest.mock('@/shared/native', () => ({
   FaceDetector: { detect: jest.fn() },
@@ -10,12 +14,6 @@ jest.mock('@/shared/native', () => ({
 
 jest.mock('@/shared/lib', () => ({
   cropFace: jest.fn(),
-}))
-
-jest.mock('@/shared/db', () => ({
-  withTransaction: jest.fn((fn: (db: unknown) => Promise<unknown>) => fn({})),
-  insertPerson: jest.fn(),
-  insertEmbedding: jest.fn(),
 }))
 
 function makeWrapper(qc: QueryClient) {
@@ -38,14 +36,12 @@ describe('useRegisterPerson', () => {
     FaceNet.extractAll.mockResolvedValue(EMBEDDINGS)
     const { cropFace } = require('@/shared/lib')
     cropFace.mockImplementation((_uri: string) => Promise.resolve('file://cropped.jpg'))
-    const { insertPerson, insertEmbedding } = require('@/shared/db')
-    insertPerson.mockResolvedValue(undefined)
-    insertEmbedding.mockResolvedValue(undefined)
   })
+
+  afterEach(() => jest.restoreAllMocks())
 
   it('calls FaceNet.extractAll before insertPerson (no orphaned records on FaceNet failure)', async () => {
     const { FaceNet } = require('@/shared/native')
-    const { insertPerson, insertEmbedding } = require('@/shared/db')
     FaceNet.extractAll.mockRejectedValueOnce(new Error('inference error'))
 
     const qc = makeQc()
@@ -53,24 +49,24 @@ describe('useRegisterPerson', () => {
     act(() => { result.current.mutate(INPUT) })
 
     await waitFor(() => expect(result.current.isError).toBe(true))
-    expect(insertPerson).not.toHaveBeenCalled()
-    expect(insertEmbedding).not.toHaveBeenCalled()
+    const persons = await getAllPersons()
+    expect(persons).toHaveLength(0)
   })
 
   it('calls insertPerson once and insertEmbedding per photo on success', async () => {
-    const { insertPerson, insertEmbedding } = require('@/shared/db')
     const qc = makeQc()
     const { result } = renderHook(() => useRegisterPerson(), { wrapper: makeWrapper(qc) })
 
     act(() => { result.current.mutate(INPUT) })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(insertPerson).toHaveBeenCalledTimes(1)
-    expect(insertEmbedding).toHaveBeenCalledTimes(3)
+    const persons = await getAllPersons()
+    expect(persons).toHaveLength(1)
+    const embeddings = await getEmbeddingsByPersonId(persons[0].id)
+    expect(embeddings).toHaveLength(3)
   })
 
   it('passes serialized embeddings and matching photoUris to insertEmbedding', async () => {
-    const { insertPerson, insertEmbedding } = require('@/shared/db')
     const qc = makeQc()
     const { result } = renderHook(() => useRegisterPerson(), { wrapper: makeWrapper(qc) })
 
@@ -78,9 +74,12 @@ describe('useRegisterPerson', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    const personId = insertPerson.mock.calls[0][0].id
+    const persons = await getAllPersons()
+    const personId = persons[0].id
+    const embeddings = await getEmbeddingsByPersonId(personId)
+
     for (let i = 0; i < 3; i++) {
-      expect(insertEmbedding).toHaveBeenCalledWith(
+      expect(embeddings).toContainEqual(
         expect.objectContaining({
           person_id: personId,
           embedding: JSON.stringify(EMBEDDINGS[i]),
@@ -102,8 +101,7 @@ describe('useRegisterPerson', () => {
   })
 
   it('enters error state when insertPerson fails (after FaceNet succeeds)', async () => {
-    const { insertPerson } = require('@/shared/db')
-    insertPerson.mockRejectedValueOnce(new Error('db error'))
+    jest.spyOn(dbModule, 'insertPerson').mockRejectedValueOnce(new Error('db error'))
 
     const qc = makeQc()
     const { result } = renderHook(() => useRegisterPerson(), { wrapper: makeWrapper(qc) })

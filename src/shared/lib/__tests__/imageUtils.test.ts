@@ -56,6 +56,71 @@ describe('isFileUri', () => {
   })
 })
 
+describe('resizeForMosaic', () => {
+  beforeEach(() => {
+    const { Image } = require('react-native')
+    const { manipulateAsync } = require('expo-image-manipulator')
+    Image.getSize.mockImplementation((_uri: string, success: (w: number, h: number) => void) => success(320, 240))
+    manipulateAsync.mockResolvedValue({ uri: 'file://processed.jpg' })
+  })
+
+  it('returns scale=1 and no resize action when image is within MOSAIC_MAX_DIMENSION', async () => {
+    // 320x240 < 1920 → scale = 1, no resize
+    const { resizeForMosaic } = require('../imageUtils')
+    const { manipulateAsync } = require('expo-image-manipulator')
+
+    const result = await resizeForMosaic('file://original.jpg')
+
+    expect(result.scale).toBe(1)
+    expect(result.uri).toBe('file://processed.jpg')
+    // resize action は含まれない（空配列）
+    expect(manipulateAsync).toHaveBeenCalledWith(
+      'file://original.jpg',
+      [],
+      expect.objectContaining({ format: 'jpeg' })
+    )
+  })
+
+  it('returns scale<1 and resize action when image exceeds MOSAIC_MAX_DIMENSION', async () => {
+    const { Image } = require('react-native')
+    const { manipulateAsync } = require('expo-image-manipulator')
+    // 3840x2160 → maxDim=3840 → scale=1920/3840=0.5
+    Image.getSize.mockImplementation((_uri: string, success: (w: number, h: number) => void) => success(3840, 2160))
+
+    const { resizeForMosaic } = require('../imageUtils')
+    const result = await resizeForMosaic('file://large.jpg')
+
+    expect(result.scale).toBe(0.5)
+    expect(manipulateAsync).toHaveBeenCalledWith(
+      'file://large.jpg',
+      [{ resize: { width: 1920, height: 1080 } }],
+      expect.objectContaining({ format: 'jpeg' })
+    )
+  })
+
+  it('uses the longer side (width) to determine scale', async () => {
+    const { Image } = require('react-native')
+    // 2560x1440 → maxDim=2560 → scale=1920/2560=0.75
+    Image.getSize.mockImplementation((_uri: string, success: (w: number, h: number) => void) => success(2560, 1440))
+
+    const { resizeForMosaic } = require('../imageUtils')
+    const result = await resizeForMosaic('file://img.jpg')
+
+    expect(result.scale).toBeCloseTo(0.75)
+  })
+
+  it('uses the longer side (height) to determine scale for portrait images', async () => {
+    const { Image } = require('react-native')
+    // 1440x3840 → maxDim=3840 → scale=1920/3840=0.5
+    Image.getSize.mockImplementation((_uri: string, success: (w: number, h: number) => void) => success(1440, 3840))
+
+    const { resizeForMosaic } = require('../imageUtils')
+    const result = await resizeForMosaic('file://portrait.jpg')
+
+    expect(result.scale).toBe(0.5)
+  })
+})
+
 describe('cropFace', () => {
   // getSize mock: 320x240
 

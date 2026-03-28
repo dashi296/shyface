@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import { useProcessImage } from '../useProcessImage'
 import { FACE_SIMILARITY_THRESHOLD as THRESHOLD } from '@/shared/config'
+import { insertPerson, insertEmbedding } from '@/shared/db'
 
 const mockEmbedding = Array(128).fill(0.5)
 
@@ -12,14 +13,10 @@ jest.mock('@/shared/native', () => ({
   Mosaic: { apply: jest.fn().mockResolvedValue('file://blurred.jpg') },
 }))
 
-jest.mock('@/shared/db', () => ({
-  getAllEmbeddings: jest.fn(),
-}))
-
 jest.mock('@/shared/lib', () => ({
   cosineSimilarity: jest.fn(),
   cropFace: jest.fn().mockImplementation((_uri, _box) => Promise.resolve('file://cropped.jpg')),
-  resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://original.jpg', scale: 1 }),
+  resizeForMosaic: jest.fn().mockResolvedValue({ uri: 'file://resized.jpg', scale: 1 }),
 }))
 
 function makeWrapper() {
@@ -28,9 +25,12 @@ function makeWrapper() {
     React.createElement(QueryClientProvider, { client: qc }, children)
 }
 
-const storedEmbedding = [
-  { id: '1', person_id: 'p1', embedding: JSON.stringify(mockEmbedding), source_uri: 'u', created_at: '', updated_at: '' },
-]
+const NOW = '2026-01-01T00:00:00.000Z'
+
+async function seedStoredEmbedding(embeddingData = JSON.stringify(mockEmbedding)) {
+  await insertPerson({ id: 'p1', name: 'Test', memo: null, created_at: NOW, updated_at: NOW })
+  await insertEmbedding({ id: '1', person_id: 'p1', embedding: embeddingData, source_uri: 'u', created_at: NOW, updated_at: NOW })
+}
 
 describe('useProcessImage', () => {
   beforeEach(() => { jest.clearAllMocks() })
@@ -48,13 +48,11 @@ describe('useProcessImage', () => {
 
   it('crops each face before extracting embeddings', async () => {
     const { FaceDetector, FaceNet } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
     const { cosineSimilarity, cropFace } = require('@/shared/lib')
 
     const box = { x: 10, y: 10, width: 50, height: 50 }
     FaceDetector.detect.mockResolvedValue([box])
     FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-    getAllEmbeddings.mockResolvedValue([])
     cosineSimilarity.mockReturnValue(0.3)
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
@@ -66,33 +64,31 @@ describe('useProcessImage', () => {
   })
 
   it('applies mosaic when similarity is above threshold', async () => {
+    await seedStoredEmbedding()
     const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
     const { cosineSimilarity } = require('@/shared/lib')
 
     const box = { x: 10, y: 10, width: 50, height: 50 }
     FaceDetector.detect.mockResolvedValue([box])
     FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-    getAllEmbeddings.mockResolvedValue(storedEmbedding)
     cosineSimilarity.mockReturnValue(0.95)
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate('file://original.jpg') })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(Mosaic.apply).toHaveBeenCalledWith('file://original.jpg', [box])
+    expect(Mosaic.apply).toHaveBeenCalledWith('file://resized.jpg', [box])
     expect(result.current.data).toBe('file://blurred.jpg')
   })
 
   it('does not apply mosaic when similarity is below threshold', async () => {
+    await seedStoredEmbedding()
     const { FaceDetector, FaceNet } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
     const { cosineSimilarity } = require('@/shared/lib')
 
     const box = { x: 10, y: 10, width: 50, height: 50 }
     FaceDetector.detect.mockResolvedValue([box])
     FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-    getAllEmbeddings.mockResolvedValue(storedEmbedding)
     cosineSimilarity.mockReturnValue(0.3)
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
@@ -103,15 +99,13 @@ describe('useProcessImage', () => {
   })
 
   it('does not blur when similarity equals threshold exactly (strict >)', async () => {
-    const { FaceDetector, FaceNet } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
+    await seedStoredEmbedding()
+    const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
     const { cosineSimilarity } = require('@/shared/lib')
-    const { Mosaic } = require('@/shared/native')
 
     const box = { x: 0, y: 0, width: 100, height: 100 }
     FaceDetector.detect.mockResolvedValue([box])
     FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-    getAllEmbeddings.mockResolvedValue(storedEmbedding)
     cosineSimilarity.mockReturnValue(THRESHOLD) // exactly 0.7
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
@@ -123,8 +117,8 @@ describe('useProcessImage', () => {
   })
 
   it('blurs only matched faces in multi-face image', async () => {
+    await seedStoredEmbedding()
     const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
     const { cosineSimilarity } = require('@/shared/lib')
 
     const boxA = { x: 0, y: 0, width: 50, height: 50 }
@@ -134,7 +128,6 @@ describe('useProcessImage', () => {
 
     FaceDetector.detect.mockResolvedValue([boxA, boxB])
     FaceNet.extractAll.mockResolvedValue([embeddingA, embeddingB])
-    getAllEmbeddings.mockResolvedValue(storedEmbedding)
 
     // faceA: above threshold → blur; faceB: below threshold → keep
     cosineSimilarity
@@ -145,7 +138,7 @@ describe('useProcessImage', () => {
     act(() => { result.current.mutate('file://original.jpg') })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(Mosaic.apply).toHaveBeenCalledWith('file://original.jpg', [boxA])
+    expect(Mosaic.apply).toHaveBeenCalledWith('file://resized.jpg', [boxA])
     expect(result.current.data).toBe('file://blurred.jpg')
   })
 
@@ -161,11 +154,9 @@ describe('useProcessImage', () => {
 
   it('enters error state when FaceNet fails', async () => {
     const { FaceDetector, FaceNet } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
 
     FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
     FaceNet.extractAll.mockRejectedValue(new Error('inference error'))
-    getAllEmbeddings.mockResolvedValue([])
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate('file://original.jpg') })
@@ -173,19 +164,20 @@ describe('useProcessImage', () => {
     await waitFor(() => expect(result.current.isError).toBe(true))
   })
 
-  it('enters error state when stored embedding JSON is corrupt', async () => {
-    const { FaceDetector, FaceNet } = require('@/shared/native')
-    const { getAllEmbeddings } = require('@/shared/db')
+  it('skips corrupt embedding records and returns original uri gracefully', async () => {
+    // corrupt な embedding レコードを DB に挿入する
+    await seedStoredEmbedding('INVALID_JSON')
+    const { FaceDetector, FaceNet, Mosaic } = require('@/shared/native')
 
     FaceDetector.detect.mockResolvedValue([{ x: 0, y: 0, width: 50, height: 50 }])
     FaceNet.extractAll.mockResolvedValue([mockEmbedding])
-    getAllEmbeddings.mockResolvedValue([
-      { id: '1', person_id: 'p1', embedding: 'INVALID_JSON', source_uri: 'u', created_at: '', updated_at: '' },
-    ])
 
     const { result } = renderHook(() => useProcessImage(), { wrapper: makeWrapper() })
     act(() => { result.current.mutate('file://original.jpg') })
 
-    await waitFor(() => expect(result.current.isError).toBe(true))
+    // corrupt レコードはスキップされ処理が継続する（エラーにならない）
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toBe('file://original.jpg') // match なし → 元画像を返す
+    expect(Mosaic.apply).not.toHaveBeenCalled()
   })
 })
