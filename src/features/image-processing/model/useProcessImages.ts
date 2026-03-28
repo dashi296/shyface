@@ -33,10 +33,9 @@ export function useProcessImages() {
         console.warn('[useProcessImages] getAllEmbeddings returned empty — no face matching will occur')
       }
 
-      if (isMountedRef.current) setProgress({ current: 0, total: uris.length })
-
       const results: ImageProcessResult[] = []
       for (let i = 0; i < uris.length; i++) {
+        if (isMountedRef.current) setProgress({ current: i + 1, total: uris.length })
         const uri = uris[i]
         try {
           const resultUri = await processImage(uri, storedEmbeddings)
@@ -46,7 +45,6 @@ export function useProcessImages() {
           console.error('[useProcessImages] Failed to process image', { uri, error: e })
           results.push({ status: 'error', originalUri: uri, resultUri: uri, error: message })
         }
-        if (isMountedRef.current) setProgress({ current: i + 1, total: uris.length })
       }
 
       return results
