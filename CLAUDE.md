@@ -380,11 +380,20 @@ export const Mosaic = {
 ```bash
 bun install           # 依存関係インストール
 bunx expo start       # 開発サーバー起動
-bunx expo run:ios     # iOS シミュレーターで起動
-bunx expo run:android # Android エミュレーターで起動
+bunx expo run:ios     # iOS シミュレーターで起動（本番 Bundle ID）
+bunx expo run:android # Android エミュレーターで起動（本番 Package）
 bun run tsc --noEmit  # 型チェック
 bun test              # テスト実行
 ```
+
+> **開発ビルドを同一端末に共存させる場合**（EAS Build を使わずローカルで開発 Bundle ID を使いたいとき）:
+>
+> ```bash
+> EAS_BUILD_PROFILE=development bunx expo run:ios     # dev Bundle ID: com.dashi296.shyface.dev
+> EAS_BUILD_PROFILE=development bunx expo run:android # dev Package:   com.dashi296.shyface.dev
+> ```
+>
+> `EAS_BUILD_PROFILE` を省略すると本番 Bundle ID が使われる。`eas build --profile development` は EAS が自動でこの変数を設定する。
 
 ### EAS Build
 
