@@ -1,7 +1,7 @@
 import * as ImageManipulator from 'expo-image-manipulator'
 import { Image } from 'react-native'
 import type { BoundingBox } from '@/shared/native'
-import { FACE_CROP_PADDING } from '@/shared/config'
+import { getPadding } from '@/shared/config'
 
 function getImageSize(uri: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) =>
@@ -43,8 +43,8 @@ export async function cropFace(uri: string, box: BoundingBox): Promise<string> {
 
   // バウンディングボックスを 20% 拡張して顔周辺のコンテキストを含める
   // 登録・認識の両方で同じ前処理を適用することで照合精度を向上させる
-  const padX = box.width * FACE_CROP_PADDING
-  const padY = box.height * FACE_CROP_PADDING
+  const padX = box.width * getPadding()
+  const padY = box.height * getPadding()
   const originX = Math.max(0, Math.round(box.x - padX))
   const originY = Math.max(0, Math.round(box.y - padY))
   // 右端・下端は画像サイズ - 1 に収める（ぴったり一致すると ImageManipulator が width=0 エラーを投げる）

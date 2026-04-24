@@ -3,6 +3,10 @@
  */
 import { uriToFilePath, isFileUri } from '../imageUtils'
 
+jest.mock('expo-constants', () => ({
+  default: { expoConfig: { extra: { isDev: false } } },
+}))
+
 jest.mock('react-native', () => ({
   Image: {
     getSize: jest.fn((_uri: string, success: (w: number, h: number) => void) => success(320, 240)),
