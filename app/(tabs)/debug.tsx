@@ -2,8 +2,7 @@ import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { Redirect } from 'expo-router'
 import Constants from 'expo-constants'
-import { useDevOverrides } from '@/shared/config'
-import { FACE_SIMILARITY_THRESHOLD, FACE_CROP_PADDING } from '@/shared/config'
+import { useDevOverrides, FACE_SIMILARITY_THRESHOLD, FACE_CROP_PADDING } from '@/shared/config'
 
 const IS_DEV = Constants.expoConfig?.extra?.isDev === true
 
@@ -11,9 +10,9 @@ const THRESHOLD_STEP = 0.05
 const THRESHOLD_MIN = 0.5
 const THRESHOLD_MAX = 1.0
 
-const PADDING_STEP = 0.05
 const PADDING_MIN = 0.0
 const PADDING_MAX = 0.5
+const PADDING_STEP = 0.05
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value * 100) / 100))
@@ -23,7 +22,6 @@ function ValueRow({
   label,
   defaultValue,
   currentValue,
-  step: _step,
   min,
   max,
   onDecrement,
@@ -33,7 +31,6 @@ function ValueRow({
   label: string
   defaultValue: number
   currentValue: number | null
-  step: number
   min: number
   max: number
   onDecrement: () => void
@@ -78,9 +75,9 @@ function ValueRow({
 }
 
 export default function DebugScreen() {
-  if (!IS_DEV) return <Redirect href="/" />
-
   const { threshold, padding, setThreshold, setPadding, resetAll } = useDevOverrides()
+
+  if (!IS_DEV) return <Redirect href="/" />
 
   const effectiveThreshold = threshold ?? FACE_SIMILARITY_THRESHOLD
   const effectivePadding = padding ?? FACE_CROP_PADDING
@@ -93,7 +90,6 @@ export default function DebugScreen() {
         label="顔マッチング閾値"
         defaultValue={FACE_SIMILARITY_THRESHOLD}
         currentValue={threshold}
-        step={THRESHOLD_STEP}
         min={THRESHOLD_MIN}
         max={THRESHOLD_MAX}
         onDecrement={() => setThreshold(clamp(effectiveThreshold - THRESHOLD_STEP, THRESHOLD_MIN, THRESHOLD_MAX))}
@@ -105,7 +101,6 @@ export default function DebugScreen() {
         label="顔クロップパディング"
         defaultValue={FACE_CROP_PADDING}
         currentValue={padding}
-        step={PADDING_STEP}
         min={PADDING_MIN}
         max={PADDING_MAX}
         onDecrement={() => setPadding(clamp(effectivePadding - PADDING_STEP, PADDING_MIN, PADDING_MAX))}

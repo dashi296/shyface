@@ -41,7 +41,6 @@ export async function resizeForMosaic(uri: string): Promise<{ uri: string; scale
 export async function cropFace(uri: string, box: BoundingBox): Promise<string> {
   const { width: imgW, height: imgH } = await getImageSize(uri)
 
-  // バウンディングボックスを 20% 拡張して顔周辺のコンテキストを含める
   // 登録・認識の両方で同じ前処理を適用することで照合精度を向上させる
   const padX = box.width * getPadding()
   const padY = box.height * getPadding()
