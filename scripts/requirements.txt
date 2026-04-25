@@ -1,0 +1,5 @@
+# Python 3.9–3.11 推奨
+# M1/M2 Mac: pip install tensorflow-macos の利用を推奨
+tensorflow>=2.13
+pillow>=9.0
+numpy>=1.24
