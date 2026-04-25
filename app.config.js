@@ -29,6 +29,7 @@ module.exports = {
   },
   scheme,
   extra: {
+    isDev: IS_DEV,
     router: {},
     eas: {
       projectId: '646fa1bb-9f61-4772-9a9b-9d8ada970ebc',

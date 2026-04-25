@@ -1,8 +1,9 @@
-import React, { Component, type ReactNode } from 'react'
+import React, { Component, type ReactNode, useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Stack } from 'expo-router'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/shared/api'
+import { useDevOverrides } from '@/shared/config'
 
 interface ErrorBoundaryState { error: Error | null }
 
@@ -27,6 +28,12 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundary
 }
 
 export default function RootLayout() {
+  const load = useDevOverrides((s) => s.load)
+
+  useEffect(() => {
+    load()
+  }, [load])
+
   return (
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>

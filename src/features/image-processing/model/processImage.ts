@@ -2,7 +2,7 @@ import { FaceDetector, FaceNet, Mosaic } from '@/shared/native'
 import { getAllEmbeddings } from '@/shared/db'
 import type { Embedding } from '@/shared/db'
 import { cosineSimilarity, cropFace, resizeForMosaic } from '@/shared/lib'
-import { FACE_SIMILARITY_THRESHOLD } from '@/shared/config'
+import { getThreshold } from '@/shared/config'
 
 export async function processImage(uri: string, preloadedEmbeddings?: Embedding[]): Promise<string> {
   const boxes = await FaceDetector.detect(uri)
@@ -41,7 +41,7 @@ export async function processImage(uri: string, preloadedEmbeddings?: Embedding[
 
   const regionsToBlur = boxes.filter((_, i) =>
     Object.values(embeddingsByPerson).some((vecs) =>
-      vecs.some((v) => cosineSimilarity(faceEmbeddings[i], v) > FACE_SIMILARITY_THRESHOLD)
+      vecs.some((v) => cosineSimilarity(faceEmbeddings[i], v) > getThreshold())
     )
   )
 
