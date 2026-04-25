@@ -38,7 +38,13 @@ function loadFixture(): Fixture {
         'Run: python scripts/gen_face_fixtures.py --lfw-root <path>',
     )
   }
-  return JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf-8')) as Fixture
+  const fixture = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf-8')) as Fixture
+  if (fixture.same_pairs.length === 0 || fixture.diff_pairs.length === 0) {
+    throw new Error(
+      'Fixture contains empty pair arrays. Regenerate with: python scripts/gen_face_fixtures.py --lfw-root <path>',
+    )
+  }
+  return fixture
 }
 
 describe('FaceNet embedding accuracy', () => {
@@ -84,7 +90,7 @@ describe('FaceNet embedding accuracy', () => {
 
     if (_meta.dataset.startsWith('synthetic')) {
       console.warn(
-        '\n⚠ Placeholder fixture (synthetic embeddings). ' +
+        '\n[WARNING] Placeholder fixture (synthetic embeddings). ' +
           'Run gen_face_fixtures.py with real LFW data for meaningful results.',
       )
     }

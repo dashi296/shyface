@@ -26,15 +26,20 @@ MODEL_INPUT_SIZE = 160
 
 def load_interpreter():
     try:
-        import tensorflow as tf
-
-        interpreter = tf.lite.Interpreter(model_path=str(MODEL_PATH))
+        try:
+            import tflite_runtime.interpreter as tflite
+            interpreter = tflite.Interpreter(model_path=str(MODEL_PATH))
+        except ImportError:
+            import tensorflow as tf
+            interpreter = tf.lite.Interpreter(model_path=str(MODEL_PATH))
     except Exception as e:
         print(f"Error loading model: {e}", file=sys.stderr)
         sys.exit(1)
 
     interpreter.allocate_tensors()
-    return interpreter
+    input_idx = interpreter.get_input_details()[0]["index"]
+    output_idx = interpreter.get_output_details()[0]["index"]
+    return interpreter, input_idx, output_idx
 
 
 def preprocess(image_path: Path) -> np.ndarray:
@@ -50,15 +55,11 @@ def preprocess(image_path: Path) -> np.ndarray:
     return normalized[np.newaxis, ...]  # shape: (1, 160, 160, 3)
 
 
-def extract_embedding(interpreter, image_path: Path) -> list[float]:
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-
+def extract_embedding(interpreter, input_idx: int, output_idx: int, image_path: Path) -> list[float]:
     input_tensor = preprocess(image_path)
-    interpreter.set_tensor(input_details[0]["index"], input_tensor)
+    interpreter.set_tensor(input_idx, input_tensor)
     interpreter.invoke()
-    output = interpreter.get_tensor(output_details[0]["index"])
-    return output[0].tolist()
+    return interpreter.get_tensor(output_idx)[0].tolist()
 
 
 def parse_pairs(pairs_file: Path, lfw_root: Path, n_same: int, n_diff: int):
@@ -124,7 +125,7 @@ def main():
         sys.exit(1)
 
     print(f"Loading model from {MODEL_PATH}...")
-    interpreter = load_interpreter()
+    interpreter, input_idx, output_idx = load_interpreter()
 
     print(f"Parsing pairs from {pairs_file}...")
     same_pairs, diff_pairs = parse_pairs(pairs_file, image_root, args.n_same, args.n_diff)
@@ -142,8 +143,8 @@ def main():
         for i, (p1, p2) in enumerate(pairs, 1):
             print(f"  [{label}] {i}/{len(pairs)}: {p1.name} & {p2.name}")
             results.append({
-                "a": extract_embedding(interpreter, p1),
-                "b": extract_embedding(interpreter, p2),
+                "a": extract_embedding(interpreter, input_idx, output_idx, p1),
+                "b": extract_embedding(interpreter, input_idx, output_idx, p2),
             })
         return results
 
