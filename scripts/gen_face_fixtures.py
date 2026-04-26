@@ -7,7 +7,6 @@ __fixtures__/face_embeddings.json に保存するスクリプト。
 
 import argparse
 import json
-import os
 import sys
 import warnings
 from datetime import datetime, timezone
