@@ -1,0 +1,6 @@
+# Python 3.9–3.11 推奨
+# tflite-runtime (~5 MB) が優先。利用不可の場合は tensorflow (~500 MB) にフォールバック
+tflite-runtime>=2.13
+# tflite-runtime が利用できない場合: pip install tensorflow>=2.13
+pillow>=9.0
+numpy>=1.24
