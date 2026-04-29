@@ -44,7 +44,11 @@
     ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
-    }
+    },
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/.worktrees/"
+    ]
   },
   "private": true,
   "devDependencies": {
