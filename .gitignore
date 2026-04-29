@@ -37,3 +37,4 @@ coverage/
 # Android keystore
 *.jks
 *.keystore
+.superpowers/
