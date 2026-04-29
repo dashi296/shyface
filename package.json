@@ -4,8 +4,8 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start --dev-client",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "android": "EAS_BUILD_PROFILE=development expo run:android",
+    "ios": "EAS_BUILD_PROFILE=development expo run:ios",
     "web": "expo start --web",
     "lint": "eslint src/ app/",
     "test": "jest --forceExit",
