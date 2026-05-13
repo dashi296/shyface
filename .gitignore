@@ -40,6 +40,7 @@ coverage/
 # e2e test fixtures (downloaded, not committed)
 e2e/fixtures/faces/**/*.jpg
 e2e/fixtures/faces/**/*.png
+e2e/fixtures/faces/.generator-version
 
 # Android keystore
 *.jks

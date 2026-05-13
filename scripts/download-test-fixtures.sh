@@ -3,61 +3,58 @@
 #
 # 処理の流れ:
 #   1. thispersondoesnotexist.com から AI 生成顔を3枚ダウンロード（ベース画像）
-#   2. Python + Pillow で明度/コントラスト/彩度バリエーションを生成
-#      → 登録用 (person_a, person_b) と認識テスト用 (recognition/) の両方を出力
+#   2. Docker コンテナ内で InsightFace + scipy TPS ワープを実行し
+#      登録用 (person_a, person_b) と認識テスト用 (recognition/) の両方を出力
 #   3. ベース一時ファイルを削除
 #
 # 出力先:
 #   e2e/fixtures/faces/
-#   ├── person_a/{1,2,3}.jpg         ← person_a の登録用（同一人物の3バリエーション）
-#   ├── person_b/{1,2,3}.jpg         ← person_b の登録用（同一人物の3バリエーション）
+#   ├── person_a/{1_front,2_left,3_right}.jpg   ← 登録用（3アングル）
+#   ├── person_b/{1_front,2_left,3_right}.jpg
 #   └── recognition/
-#       ├── match_person_a.jpg       ← person_a と一致するはず → ブラーされる
-#       ├── match_person_b.jpg       ← person_b と一致するはず → ブラーされる
-#       ├── no_match.jpg             ← どちらとも一致しない別人 → ブラーされない
-#       └── group_ab.jpg             ← person_a + person_b の合成 → 両方ブラーされる
+#       ├── match_person_a.jpg
+#       ├── match_person_b.jpg
+#       ├── no_match.jpg
+#       └── group_ab.jpg
 #
 # 使い方:
-#   bash scripts/download-test-fixtures.sh
+#   bash scripts/download-test-fixtures.sh           # 通常実行
+#   bash scripts/download-test-fixtures.sh --rebuild # Docker イメージを強制再ビルド
 #
 # 必要なもの:
-#   - Python 3 + Pillow（macOS に標準でインストール済みの場合が多い）
-#   - インターネット接続
+#   - Docker（Python / InsightFace 依存はコンテナ内で解決）
+#   - インターネット接続（初回: ベース画像 + InsightFace モデル ~350MB）
 
 set -euo pipefail
 
 FIXTURES_DIR="e2e/fixtures/faces"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TMP_DIR=$(mktemp -d)
+# 生成中の出力先（FIXTURES_DIR と同一 FS 上に置くことで mv がアトミックになる）
+TMP_OUTPUT="$(dirname "$PROJECT_DIR/$FIXTURES_DIR")/.faces-generating"
 URL="https://thispersondoesnotexist.com/"
 SLEEP_SEC=2
+DOCKER_IMAGE="shyface-fixtures:latest"
+INSIGHTFACE_CACHE="${HOME}/.cache/shyface-insightface"
+# 生成アルゴリズムを変更した際はここをインクリメントする
+GENERATOR_VERSION="2"
+VERSION_FILE="$FIXTURES_DIR/.generator-version"
 
 cleanup() {
   rm -rf "$TMP_DIR"
+  rm -rf "$TMP_OUTPUT"
 }
 trap cleanup EXIT
 
-# 依存ライブラリの確認
-if ! python3 -c "from PIL import Image" 2>/dev/null; then
-  echo "ERROR: Pillow not found. Install with: pip3 install Pillow"
-  exit 1
-fi
-if ! python3 -c "import numpy" 2>/dev/null; then
-  echo "ERROR: numpy not found. Install with: pip3 install numpy"
-  exit 1
+# --rebuild フラグは最初に解釈する（スキップ判定より前）
+REBUILD=0
+if [[ "${1:-}" == "--rebuild" ]]; then
+  REBUILD=1
+  echo "=== --rebuild: フィクスチャと Docker イメージを強制再生成します ==="
 fi
 
-download_face() {
-  local dest="$1"
-  echo "  downloading → $dest"
-  curl -s -L \
-    -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
-    -H "Referer: https://thispersondoesnotexist.com/" \
-    "$URL" -o "$dest"
-  sleep "$SLEEP_SEC"
-}
-
-# すべての出力ファイルが揃っていればスキップ
+# バージョンチェック + ファイル存在チェック → 両方満たせば Docker 不要でスキップ
 all_files=(
   "$FIXTURES_DIR/person_a/1_front.jpg"
   "$FIXTURES_DIR/person_a/2_left.jpg"
@@ -74,11 +71,61 @@ missing=0
 for f in "${all_files[@]}"; do
   [[ -f "$f" ]] || missing=1
 done
-if [[ $missing -eq 0 ]]; then
-  echo "All fixtures already exist. Skipping download."
-  echo "To re-generate, delete e2e/fixtures/faces/ and re-run."
+stored_version=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
+if [[ $REBUILD -eq 0 && $missing -eq 0 && "$stored_version" == "$GENERATOR_VERSION" ]]; then
+  echo "All fixtures already exist (generator v${GENERATOR_VERSION}). Skipping download."
+  echo "To re-generate, delete $FIXTURES_DIR/ and re-run."
   exit 0
 fi
+if [[ $missing -eq 0 && "$stored_version" != "$GENERATOR_VERSION" ]]; then
+  echo "Generator updated (v${stored_version} → v${GENERATOR_VERSION}). Re-generating fixtures..."
+fi
+
+# Docker の確認
+if ! command -v docker &>/dev/null; then
+  echo "ERROR: Docker が見つかりません。Docker Desktop をインストールしてください。"
+  echo "  https://www.docker.com/products/docker-desktop/"
+  exit 1
+fi
+if ! docker info &>/dev/null 2>&1; then
+  echo "ERROR: Docker デーモンが起動していません。Docker Desktop を起動してください。"
+  exit 1
+fi
+
+# Docker イメージのビルド
+# Dockerfile.fixtures のハッシュをイメージラベルに保存し、変更時は自動で再ビルドする
+DOCKERFILE_HASH=$(shasum -a 256 "$SCRIPT_DIR/Dockerfile.fixtures" | awk '{print $1}')
+STORED_HASH=$(docker inspect --format '{{index .Config.Labels "dockerfile_hash"}}' "$DOCKER_IMAGE" 2>/dev/null || echo "")
+if [[ $REBUILD -eq 1 ]] \
+    || ! docker image inspect "$DOCKER_IMAGE" &>/dev/null 2>&1 \
+    || [[ "$STORED_HASH" != "$DOCKERFILE_HASH" ]]; then
+  echo "=== Docker イメージをビルドしています（初回またはDockerfile変更時）==="
+  docker build -t "$DOCKER_IMAGE" \
+    --label "dockerfile_hash=$DOCKERFILE_HASH" \
+    -f "$SCRIPT_DIR/Dockerfile.fixtures" "$SCRIPT_DIR"
+  echo ""
+fi
+
+download_face() {
+  local dest="$1"
+  echo "  downloading → $(basename "$dest")"
+  if ! curl -s -L --fail \
+      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+      -H "Referer: https://thispersondoesnotexist.com/" \
+      "$URL" -o "$dest"; then
+    echo "ERROR: ダウンロードに失敗しました（HTTP エラー）"
+    exit 1
+  fi
+  # JPEG マジックバイト確認（レートリミット等で HTML が返された場合を検出）
+  local file_type
+  file_type=$(file -b "$dest" 2>/dev/null || true)
+  if ! echo "$file_type" | grep -qi "jpeg"; then
+    echo "ERROR: ダウンロードしたファイルが JPEG ではありません: $file_type"
+    echo "  レートリミットの可能性があります。しばらく待ってから再試行してください。"
+    exit 1
+  fi
+  sleep "$SLEEP_SEC"
+}
 
 echo "=== shyface test fixtures: download + generate ==="
 echo ""
@@ -88,13 +135,35 @@ download_face "$TMP_DIR/base_a.jpg"
 download_face "$TMP_DIR/base_b.jpg"
 download_face "$TMP_DIR/base_no_match.jpg"
 
+rm -rf "$TMP_OUTPUT"
+mkdir -p "$TMP_OUTPUT"
+mkdir -p "$INSIGHTFACE_CACHE"
+
 echo ""
-echo "[2/2] Generating registration & recognition variants..."
-python3 "$SCRIPT_DIR/_generate_variations.py" \
-  "$TMP_DIR/base_a.jpg" \
-  "$TMP_DIR/base_b.jpg" \
-  "$TMP_DIR/base_no_match.jpg" \
-  "$FIXTURES_DIR"
+echo "[2/2] Generating registration & recognition variants (via Docker)..."
+echo "  InsightFace モデルは初回実行時にダウンロードされます（~350MB）"
+echo "  モデルキャッシュ先: $INSIGHTFACE_CACHE"
+echo ""
+
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp \
+  -e INSIGHTFACE_HOME=/cache \
+  -v "$SCRIPT_DIR/_generate_variations.py:/app/_generate_variations.py:ro" \
+  -v "$TMP_DIR:/input:ro" \
+  -v "$TMP_OUTPUT:/output" \
+  -v "$INSIGHTFACE_CACHE:/cache" \
+  "$DOCKER_IMAGE" \
+  python3 /app/_generate_variations.py \
+    /input/base_a.jpg \
+    /input/base_b.jpg \
+    /input/base_no_match.jpg \
+    /output
+
+# 生成成功後にアトミック置き換え（生成失敗時は既存フィクスチャを保持）
+echo "$GENERATOR_VERSION" > "$TMP_OUTPUT/.generator-version"
+rm -rf "$PROJECT_DIR/$FIXTURES_DIR"
+mv "$TMP_OUTPUT" "$PROJECT_DIR/$FIXTURES_DIR"
 
 echo ""
 echo "Done. Run 'bash scripts/load-fixtures-to-simulator.sh' to inject into the iOS simulator."

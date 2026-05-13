@@ -10,6 +10,7 @@ FaceNet はアングル変化に対してロバストなため、
 認識テスト用画像（recognition/）は登録セットと独立した変形（彩度・シャープネス）を使う。
 """
 
+import os
 import sys
 import numpy as np
 from pathlib import Path
@@ -35,13 +36,15 @@ def save(img: Image.Image, path: str) -> None:
 # ---------------------------------------------------------------------------
 
 _face_app = None
+# INSIGHTFACE_HOME を明示的に使うことで、docker run --user 時も /cache に書き込める
+_INSIGHTFACE_ROOT = os.environ.get("INSIGHTFACE_HOME", os.path.expanduser("~/.insightface"))
 
 
 def _get_face_app():
     global _face_app
     if _face_app is None:
         from insightface.app import FaceAnalysis
-        _face_app = FaceAnalysis(name="buffalo_l", providers=["CPUExecutionProvider"])
+        _face_app = FaceAnalysis(name="buffalo_l", root=_INSIGHTFACE_ROOT, providers=["CPUExecutionProvider"])
         # thispersondoesnotexist.com の 1024×1024 画像に対して det_size=512 が最適
         # （det_10g のアンカーサイズは 512px スケール基準のため、それ以上は検出率が下がる）
         _face_app.prepare(ctx_id=0, det_size=(512, 512))
