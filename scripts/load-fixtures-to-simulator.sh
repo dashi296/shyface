@@ -5,7 +5,8 @@
 # 使い方:
 #   bash scripts/load-fixtures-to-simulator.sh [device-udid]
 #
-#   device-udid を省略すると起動中の最初のシミュレーターを自動選択する。
+#   device-udid を省略すると起動中のシミュレーターを自動選択する。
+#   複数のシミュレーターが起動中の場合は device-udid の指定が必須。
 #
 # 事前条件:
 #   - iOS シミュレーターが起動済みであること
@@ -45,7 +46,12 @@ import sys, json
 devices = json.load(sys.stdin)['devices']
 booted = [d for runtimes in devices.values() for d in runtimes if d['state'] == 'Booted']
 if not booted:
-    print('ERROR: no booted simulator found', file=sys.stderr)
+    print('ERROR: 起動中のシミュレーターがありません', file=sys.stderr)
+    exit(1)
+if len(booted) > 1:
+    print('ERROR: 複数のシミュレーターが起動しています。UDID を引数で指定してください:', file=sys.stderr)
+    for d in booted:
+        print('  ' + d['udid'] + '  (' + d['name'] + ')', file=sys.stderr)
     exit(1)
 print(booted[0]['udid'])
 ")
@@ -53,6 +59,26 @@ fi
 
 echo "=== Loading fixtures into simulator: $UDID ==="
 echo ""
+
+# 再実行時の写真重複を防ぐため、既存のメディアをクリアしてから注入する
+DEVICE_DATA=$(xcrun simctl list devices --json \
+  | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+udid = '$UDID'
+for devices in data['devices'].values():
+    for d in devices:
+        if d.get('udid') == udid:
+            print(d.get('dataPath', ''))
+            exit(0)
+exit(1)
+" 2>/dev/null || echo "")
+
+if [[ -n "$DEVICE_DATA" && -d "$DEVICE_DATA/Media" ]]; then
+  echo "Clearing existing simulator media (prevents duplicate photos on re-run)..."
+  rm -rf "$DEVICE_DATA/Media"
+  echo ""
+fi
 
 load() {
   echo "  addmedia: $1"
