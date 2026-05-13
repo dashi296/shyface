@@ -9,7 +9,10 @@
     "web": "expo start --web",
     "lint": "eslint src/ app/",
     "test": "jest --forceExit",
-    "tsc": "tsc --noEmit"
+    "tsc": "tsc --noEmit",
+    "e2e:setup": "bash scripts/download-test-fixtures.sh && bash scripts/load-fixtures-to-simulator.sh",
+    "e2e:download": "bash scripts/download-test-fixtures.sh",
+    "e2e:load": "bash scripts/load-fixtures-to-simulator.sh"
   },
   "dependencies": {
     "@react-native-ml-kit/face-detection": "^2.0.1",

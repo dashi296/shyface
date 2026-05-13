@@ -37,6 +37,10 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# e2e test fixtures (downloaded, not committed)
+e2e/fixtures/faces/**/*.jpg
+e2e/fixtures/faces/**/*.png
+
 # Android keystore
 *.jks
 *.keystore
