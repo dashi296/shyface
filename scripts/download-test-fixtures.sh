@@ -2,7 +2,7 @@
 # テスト用顔写真フィクスチャを生成する。
 #
 # 処理の流れ:
-#   1. thispersondoesnotexist.com から AI 生成顔を3枚ダウンロード（ベース画像）
+#   1. リポジトリの e2e/fixtures/seeds/ からベース画像をコピー（固定・再現性保証）
 #   2. Docker コンテナ内で InsightFace + scipy TPS ワープを実行し
 #      登録用 (person_a, person_b) と認識テスト用 (recognition/) の両方を出力
 #   3. ベース一時ファイルを削除
@@ -23,18 +23,21 @@
 #
 # 必要なもの:
 #   - Docker（Python / InsightFace 依存はコンテナ内で解決）
-#   - インターネット接続（初回: ベース画像 + InsightFace モデル ~350MB）
+#   - 初回実行時のみインターネット接続（InsightFace モデル ~350MB のダウンロード）
+#
+# シード画像を差し替えるには:
+#   e2e/fixtures/seeds/{base_a,base_b,base_no_match}.jpg を更新してコミットし、
+#   --rebuild で再生成する。
 
 set -euo pipefail
 
 FIXTURES_DIR="e2e/fixtures/faces"
+SEEDS_DIR="e2e/fixtures/seeds"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TMP_DIR=$(mktemp -d)
 # 生成中の出力先（FIXTURES_DIR と同一 FS 上に置くことで mv がアトミックになる）
 TMP_OUTPUT="$(dirname "$PROJECT_DIR/$FIXTURES_DIR")/.faces-generating"
-URL="https://thispersondoesnotexist.com/"
-SLEEP_SEC=2
 DOCKER_IMAGE="shyface-fixtures:latest"
 INSIGHTFACE_CACHE="${HOME}/.cache/shyface-insightface"
 # 生成アルゴリズムを変更した際はここをインクリメントする
@@ -106,34 +109,21 @@ if [[ $REBUILD -eq 1 ]] \
   echo ""
 fi
 
-download_face() {
-  local dest="$1"
-  echo "  downloading → $(basename "$dest")"
-  if ! curl -s -L --fail \
-      -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
-      -H "Referer: https://thispersondoesnotexist.com/" \
-      "$URL" -o "$dest"; then
-    echo "ERROR: ダウンロードに失敗しました（HTTP エラー）"
-    exit 1
-  fi
-  # JPEG マジックバイト確認（レートリミット等で HTML が返された場合を検出）
-  local file_type
-  file_type=$(file -b "$dest" 2>/dev/null || true)
-  if ! echo "$file_type" | grep -qi "jpeg"; then
-    echo "ERROR: ダウンロードしたファイルが JPEG ではありません: $file_type"
-    echo "  レートリミットの可能性があります。しばらく待ってから再試行してください。"
-    exit 1
-  fi
-  sleep "$SLEEP_SEC"
-}
-
-echo "=== shyface test fixtures: download + generate ==="
+echo "=== shyface test fixtures: generate ==="
 echo ""
 
-echo "[1/2] Downloading base images..."
-download_face "$TMP_DIR/base_a.jpg"
-download_face "$TMP_DIR/base_b.jpg"
-download_face "$TMP_DIR/base_no_match.jpg"
+# シード画像の存在確認
+for seed in "$SEEDS_DIR/base_a.jpg" "$SEEDS_DIR/base_b.jpg" "$SEEDS_DIR/base_no_match.jpg"; do
+  if [[ ! -f "$seed" ]]; then
+    echo "ERROR: seed image not found: $seed"
+    exit 1
+  fi
+done
+
+echo "[1/2] Copying seed images..."
+cp "$SEEDS_DIR/base_a.jpg"        "$TMP_DIR/base_a.jpg"
+cp "$SEEDS_DIR/base_b.jpg"        "$TMP_DIR/base_b.jpg"
+cp "$SEEDS_DIR/base_no_match.jpg" "$TMP_DIR/base_no_match.jpg"
 
 rm -rf "$TMP_OUTPUT"
 mkdir -p "$TMP_OUTPUT"

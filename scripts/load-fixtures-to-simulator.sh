@@ -74,10 +74,14 @@ for devices in data['devices'].values():
 exit(1)
 " 2>/dev/null || echo "")
 
-if [[ -n "$DEVICE_DATA" && -d "$DEVICE_DATA/Media" ]]; then
-  echo "Clearing existing simulator media (prevents duplicate photos on re-run)..."
-  rm -rf "$DEVICE_DATA/Media"
-  echo ""
+if [[ -n "$DEVICE_DATA" ]]; then
+  # DCIM（写真ファイル）と PhotoData（Photos DB）のみ削除し、他のメディアは保持する
+  if [[ -d "$DEVICE_DATA/Media/DCIM" ]] || [[ -d "$DEVICE_DATA/Media/PhotoData" ]]; then
+    echo "Clearing simulator Photo Library (DCIM + PhotoData) to prevent duplicates..."
+    rm -rf "$DEVICE_DATA/Media/DCIM"
+    rm -rf "$DEVICE_DATA/Media/PhotoData"
+    echo ""
+  fi
 fi
 
 load() {
