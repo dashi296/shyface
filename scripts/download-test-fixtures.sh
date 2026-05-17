@@ -27,7 +27,7 @@
 #
 # シード画像を差し替えるには:
 #   e2e/fixtures/seeds/{base_a,base_b,base_no_match}.jpg を更新してコミットし、
-#   --rebuild で再生成する。
+#   再実行するだけでよい（シードのハッシュが変われば自動で再生成される）。
 
 set -euo pipefail
 
@@ -57,7 +57,7 @@ if [[ "${1:-}" == "--rebuild" ]]; then
   echo "=== --rebuild: フィクスチャと Docker イメージを強制再生成します ==="
 fi
 
-# バージョンチェック + ファイル存在チェック → 両方満たせば Docker 不要でスキップ
+# バージョンチェック + シードハッシュ + ファイル存在チェック → すべて満たせば Docker 不要でスキップ
 all_files=(
   "$FIXTURES_DIR/person_a/1_front.jpg"
   "$FIXTURES_DIR/person_a/2_left.jpg"
@@ -74,14 +74,16 @@ missing=0
 for f in "${all_files[@]}"; do
   [[ -f "$f" ]] || missing=1
 done
-stored_version=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
-if [[ $REBUILD -eq 0 && $missing -eq 0 && "$stored_version" == "$GENERATOR_VERSION" ]]; then
-  echo "All fixtures already exist (generator v${GENERATOR_VERSION}). Skipping download."
-  echo "To re-generate, delete $FIXTURES_DIR/ and re-run."
+# シードファイルのハッシュをキャッシュキーに含める（シード更新時に自動で再生成）
+SEEDS_HASH=$(find "$PROJECT_DIR/$SEEDS_DIR" -type f | sort | xargs shasum -a 256 | shasum -a 256 | awk '{print $1}')
+CACHE_KEY="${GENERATOR_VERSION}:${SEEDS_HASH}"
+stored_key=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
+if [[ $REBUILD -eq 0 && $missing -eq 0 && "$stored_key" == "$CACHE_KEY" ]]; then
+  echo "All fixtures already exist (generator v${GENERATOR_VERSION}, seeds unchanged). Skipping generation."
   exit 0
 fi
-if [[ $missing -eq 0 && "$stored_version" != "$GENERATOR_VERSION" ]]; then
-  echo "Generator updated (v${stored_version} → v${GENERATOR_VERSION}). Re-generating fixtures..."
+if [[ $missing -eq 0 && "$stored_key" != "$CACHE_KEY" ]]; then
+  echo "Generator or seed images updated. Re-generating fixtures..."
 fi
 
 # Docker の確認
@@ -151,7 +153,7 @@ docker run --rm \
     /output
 
 # 生成成功後にアトミック置き換え（生成失敗時は既存フィクスチャを保持）
-echo "$GENERATOR_VERSION" > "$TMP_OUTPUT/.generator-version"
+echo "$CACHE_KEY" > "$TMP_OUTPUT/.generator-version"
 rm -rf "$PROJECT_DIR/$FIXTURES_DIR"
 mv "$TMP_OUTPUT" "$PROJECT_DIR/$FIXTURES_DIR"
 
