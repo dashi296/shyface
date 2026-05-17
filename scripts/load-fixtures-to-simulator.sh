@@ -3,10 +3,11 @@
 # Maestro e2e フローで expo-image-picker がこれらの写真を選択できるようになる。
 #
 # 使い方:
-#   bash scripts/load-fixtures-to-simulator.sh [device-udid]
+#   bash scripts/load-fixtures-to-simulator.sh [device-udid] [--clean]
 #
-#   device-udid を省略すると起動中のシミュレーターを自動選択する。
-#   複数のシミュレーターが起動中の場合は device-udid の指定が必須。
+#   device-udid を省略すると起動中の iOS/iPadOS シミュレーターを自動選択する。
+#   複数の iOS シミュレーターが起動中の場合は device-udid の指定が必須。
+#   --clean を指定するとフォトライブラリ全体をクリアしてから注入する（CI 向け）。
 #
 # 事前条件:
 #   - iOS シミュレーターが起動済みであること
@@ -37,19 +38,31 @@ for f in "${required_files[@]}"; do
   fi
 done
 
-if [[ $# -ge 1 ]]; then
-  UDID="$1"
-else
+CLEAN=0
+UDID=""
+for arg in "$@"; do
+  if [[ "$arg" == "--clean" ]]; then
+    CLEAN=1
+  elif [[ -z "$UDID" ]]; then
+    UDID="$arg"
+  fi
+done
+
+if [[ -z "$UDID" ]]; then
   UDID=$(xcrun simctl list devices booted --json \
     | python3 -c "
 import sys, json
 devices = json.load(sys.stdin)['devices']
-booted = [d for runtimes in devices.values() for d in runtimes if d['state'] == 'Booted']
+# iOS / iPadOS シミュレーターのみ対象（Apple Watch などペアデバイスを除外）
+booted = [
+    d for runtime, runtimes in devices.items() for d in runtimes
+    if d['state'] == 'Booted' and ('iOS' in runtime or 'iPadOS' in runtime)
+]
 if not booted:
-    print('ERROR: 起動中のシミュレーターがありません', file=sys.stderr)
+    print('ERROR: 起動中の iOS/iPadOS シミュレーターがありません', file=sys.stderr)
     exit(1)
 if len(booted) > 1:
-    print('ERROR: 複数のシミュレーターが起動しています。UDID を引数で指定してください:', file=sys.stderr)
+    print('ERROR: 複数の iOS シミュレーターが起動しています。UDID を引数で指定してください:', file=sys.stderr)
     for d in booted:
         print('  ' + d['udid'] + '  (' + d['name'] + ')', file=sys.stderr)
     exit(1)
@@ -74,10 +87,10 @@ for devices in data['devices'].values():
 exit(1)
 " 2>/dev/null || echo "")
 
-if [[ -n "$DEVICE_DATA" ]]; then
-  # DCIM（写真ファイル）と PhotoData（Photos DB）のみ削除し、他のメディアは保持する
+if [[ -n "$DEVICE_DATA" && $CLEAN -eq 1 ]]; then
+  # --clean: フォトライブラリ全体を削除する（CI 向け。既存の写真もすべて消える）
   if [[ -d "$DEVICE_DATA/Media/DCIM" ]] || [[ -d "$DEVICE_DATA/Media/PhotoData" ]]; then
-    echo "Clearing simulator Photo Library (DCIM + PhotoData) to prevent duplicates..."
+    echo "WARNING: --clean が指定されたためフォトライブラリ全体をクリアします..."
     rm -rf "$DEVICE_DATA/Media/DCIM"
     rm -rf "$DEVICE_DATA/Media/PhotoData"
     echo ""

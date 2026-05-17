@@ -115,7 +115,7 @@ echo "=== shyface test fixtures: generate ==="
 echo ""
 
 # シード画像の存在確認
-for seed in "$SEEDS_DIR/base_a.jpg" "$SEEDS_DIR/base_b.jpg" "$SEEDS_DIR/base_no_match.jpg"; do
+for seed in "$PROJECT_DIR/$SEEDS_DIR/base_a.jpg" "$PROJECT_DIR/$SEEDS_DIR/base_b.jpg" "$PROJECT_DIR/$SEEDS_DIR/base_no_match.jpg"; do
   if [[ ! -f "$seed" ]]; then
     echo "ERROR: seed image not found: $seed"
     exit 1
@@ -123,9 +123,9 @@ for seed in "$SEEDS_DIR/base_a.jpg" "$SEEDS_DIR/base_b.jpg" "$SEEDS_DIR/base_no_
 done
 
 echo "[1/2] Copying seed images..."
-cp "$SEEDS_DIR/base_a.jpg"        "$TMP_DIR/base_a.jpg"
-cp "$SEEDS_DIR/base_b.jpg"        "$TMP_DIR/base_b.jpg"
-cp "$SEEDS_DIR/base_no_match.jpg" "$TMP_DIR/base_no_match.jpg"
+cp "$PROJECT_DIR/$SEEDS_DIR/base_a.jpg"        "$TMP_DIR/base_a.jpg"
+cp "$PROJECT_DIR/$SEEDS_DIR/base_b.jpg"        "$TMP_DIR/base_b.jpg"
+cp "$PROJECT_DIR/$SEEDS_DIR/base_no_match.jpg" "$TMP_DIR/base_no_match.jpg"
 
 rm -rf "$TMP_OUTPUT"
 mkdir -p "$TMP_OUTPUT"
