@@ -15,7 +15,9 @@
 
 set -euo pipefail
 
-FIXTURES_DIR="e2e/fixtures/faces"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+FIXTURES_DIR="$PROJECT_DIR/e2e/fixtures/faces"
 
 required_files=(
   "$FIXTURES_DIR/person_a/1_front.jpg"

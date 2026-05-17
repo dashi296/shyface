@@ -74,9 +74,10 @@ missing=0
 for f in "${all_files[@]}"; do
   [[ -f "$f" ]] || missing=1
 done
-# シードファイルのハッシュをキャッシュキーに含める（シード更新時に自動で再生成）
+# シードファイルと生成スクリプトのハッシュをキャッシュキーに含める（変更時に自動で再生成）
 SEEDS_HASH=$(find "$PROJECT_DIR/$SEEDS_DIR" -type f | sort | xargs shasum -a 256 | shasum -a 256 | awk '{print $1}')
-CACHE_KEY="${GENERATOR_VERSION}:${SEEDS_HASH}"
+GENERATOR_SCRIPT_HASH=$(shasum -a 256 "$SCRIPT_DIR/_generate_variations.py" | awk '{print $1}')
+CACHE_KEY="${GENERATOR_VERSION}:${SEEDS_HASH}:${GENERATOR_SCRIPT_HASH}"
 stored_key=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
 if [[ $REBUILD -eq 0 && $missing -eq 0 && "$stored_key" == "$CACHE_KEY" ]]; then
   echo "All fixtures already exist (generator v${GENERATOR_VERSION}, seeds unchanged). Skipping generation."
