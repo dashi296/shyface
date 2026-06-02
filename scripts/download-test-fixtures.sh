@@ -42,7 +42,7 @@ DOCKER_IMAGE="shyface-fixtures:latest"
 INSIGHTFACE_CACHE="${HOME}/.cache/shyface-insightface"
 # 生成アルゴリズムを変更した際はここをインクリメントする
 GENERATOR_VERSION="2"
-VERSION_FILE="$FIXTURES_DIR/.generator-version"
+VERSION_FILE="$PROJECT_DIR/$FIXTURES_DIR/.generator-version"
 
 cleanup() {
   rm -rf "$TMP_DIR"
@@ -77,7 +77,8 @@ done
 # シードファイルと生成スクリプトのハッシュをキャッシュキーに含める（変更時に自動で再生成）
 SEEDS_HASH=$(find "$PROJECT_DIR/$SEEDS_DIR" -type f | sort | xargs shasum -a 256 | shasum -a 256 | awk '{print $1}')
 GENERATOR_SCRIPT_HASH=$(shasum -a 256 "$SCRIPT_DIR/_generate_variations.py" | awk '{print $1}')
-CACHE_KEY="${GENERATOR_VERSION}:${SEEDS_HASH}:${GENERATOR_SCRIPT_HASH}"
+DOCKERFILE_HASH=$(shasum -a 256 "$SCRIPT_DIR/Dockerfile.fixtures" | awk '{print $1}')
+CACHE_KEY="${GENERATOR_VERSION}:${SEEDS_HASH}:${GENERATOR_SCRIPT_HASH}:${DOCKERFILE_HASH}"
 stored_key=$(cat "$VERSION_FILE" 2>/dev/null || echo "")
 if [[ $REBUILD -eq 0 && $missing -eq 0 && "$stored_key" == "$CACHE_KEY" ]]; then
   echo "All fixtures already exist (generator v${GENERATOR_VERSION}, seeds unchanged). Skipping generation."
@@ -100,7 +101,6 @@ fi
 
 # Docker イメージのビルド
 # Dockerfile.fixtures のハッシュをイメージラベルに保存し、変更時は自動で再ビルドする
-DOCKERFILE_HASH=$(shasum -a 256 "$SCRIPT_DIR/Dockerfile.fixtures" | awk '{print $1}')
 STORED_HASH=$(docker inspect --format '{{index .Config.Labels "dockerfile_hash"}}' "$DOCKER_IMAGE" 2>/dev/null || echo "")
 if [[ $REBUILD -eq 1 ]] \
     || ! docker image inspect "$DOCKER_IMAGE" &>/dev/null 2>&1 \
