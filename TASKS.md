@@ -154,11 +154,12 @@ features レイヤーが依存するため、features より先に実装する�
   - 現在の計測結果 (threshold=0.6): 正解率 83.3%、FRR 0.0%、FAR 33.3% → #52 で閾値引き上げが必要
 
 - [x] **#52** 顔マッチング閾値を 0.6 から 0.7 に引き上げる
-  - Debug 画面（`app/(tabs)/debug.tsx`）で 0.05 刻みにリアルタイム調整可能なため実装完了とみなす
+  - `FACE_SIMILARITY_THRESHOLD = 0.7` に更新（`src/shared/config/constants.ts`）
+  - #49 の計測結果（threshold=0.6 で FAR=33.3%）に基づき定量検証済み
   - コスト: 低 / 効果: 高
 
 - [x] **#56** 顔クロップのパディングを 0.2 から 0.1 に縮小する
-  - Debug 画面で 0.05 刻みにリアルタイム調整可能なため実装完了とみなす
+  - `FACE_CROP_PADDING = 0.1` に更新（`src/shared/config/constants.ts`）
   - コスト: 低 / 効果: 小〜中
 
 - [ ] **#54** マッチング戦略を「任意一致」から「Top-K 平均スコア」方式に変更する
