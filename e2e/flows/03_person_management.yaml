@@ -1,5 +1,8 @@
 appId: com.dashi296.shyface.dev
 ---
+# フロー: 人物管理（一覧表示・削除）の E2E テスト
+# 前提: bun run e2e:setup 実行済み（iOS フォトライブラリの先頭に person_a の写真が注入済み）
+# 前提: シミュレーターのロケールは英語（subflow 内で "Add" ボタンを使用）
 - launchApp:
     clearState: true
 - tapOn: "人物管理"
