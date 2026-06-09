@@ -1,0 +1,69 @@
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+- tapOn: "人物管理"
+
+# FAB で登録シートを開く
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- assertVisible: "名前 *"
+
+# 名前未入力時は "次へ" が無効
+- assertVisible:
+    text: "次へ"
+    enabled: false
+
+# 名前を入力すると "次へ" が有効になる
+- tapOn: "例: 山田 太郎"
+- inputText: "Test Person"
+- assertVisible:
+    text: "次へ"
+    enabled: true
+- tapOn: "次へ"
+
+# Step2: 写真追加画面
+- assertVisible: "写真を追加"
+- assertVisible: "顔写真を 3 枚追加してください（0/3）"
+
+# 写真3枚選択前は "確認へ" が無効
+- assertVisible:
+    text: "確認へ"
+    enabled: false
+
+# ライブラリから写真を選択
+- tapOn: "ライブラリ"
+- waitForAnimationToEnd
+# ピッカーのグリッドサムネイルが完全にロードされるまで待つ
+- waitForAnimationToEnd
+- tapOn:
+    point: "17%, 27%"
+- tapOn:
+    point: "50%, 27%"
+- tapOn:
+    point: "83%, 27%"
+# 英語ロケール: "Add"、日本語ロケール: "追加"
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+# 3枚揃うと "確認へ" が有効になる
+- assertVisible: "顔写真を 3 枚追加してください（3/3）"
+- assertVisible:
+    text: "確認へ"
+    enabled: true
+- tapOn: "確認へ"
+
+# Step3: 確認画面
+- assertVisible: "確認"
+- assertVisible: "Test Person"
+- tapOn: "登録する"
+- waitForAnimationToEnd
+
+# 登録完了後: 人物一覧に表示される
+- assertVisible: "Test Person"
+
+# 再度シートを開いてキャンセルするとシートが閉じる
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- tapOn: "キャンセル"
+- assertNotVisible: "人物を登録"
