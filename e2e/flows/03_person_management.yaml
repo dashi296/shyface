@@ -1,0 +1,39 @@
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+- tapOn: "人物管理"
+
+# 未登録時の空状態
+- assertVisible: "登録された人物がいません"
+- assertVisible: "右下のボタンから人物を登録してください"
+
+# person_a を登録
+- runFlow: subflows/register_person_a.yaml
+
+# 人物一覧に表示される
+- assertVisible: "Person A"
+- assertNotVisible: "登録された人物がいません"
+
+# 削除ボタンをタップ → 確認ダイアログ
+- tapOn: "削除"
+- assertVisible: "削除確認"
+- assertVisible: "「Person A」を削除しますか？"
+
+# キャンセルすると人物が残る
+- tapOn: "キャンセル"
+- assertVisible: "Person A"
+
+# 再度削除 → 今度は確定
+# Alert が開いている状態で2つ目の "削除" (index: 1) をタップ
+# もし index が効かない場合: Alert は modal のため tapOn: "削除" だけで Alert ボタンが選ばれることがある
+- tapOn: "削除"
+- assertVisible: "削除確認"
+- tapOn:
+    text: "削除"
+    index: 1
+- waitForAnimationToEnd
+
+# 削除後: 一覧から消え、空状態に戻る
+- assertNotVisible: "Person A"
+- assertVisible: "登録された人物がいません"
