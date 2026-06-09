@@ -17,9 +17,10 @@ appId: com.dashi296.shyface.dev
 - runFlow: ../helpers/launch_dev.yaml
 
 # 人物を登録
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "山田 太郎"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
 
 # 複数画像を選択してバッチ処理画面に遷移
 - tapOn: "ライブラリから選択"

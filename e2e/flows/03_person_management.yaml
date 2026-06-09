@@ -17,25 +17,28 @@ appId: com.dashi296.shyface.dev
 - assertVisible: "右下のボタンから人物を登録してください"
 
 # 人物を1人登録して一覧に表示されることを確認
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "山田 太郎"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
 - runFlow: ../helpers/navigate_to_persons.yaml
 - assertVisible: "山田 太郎"
 
 # 複数人登録で全員が表示される
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "鈴木 花子"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "鈴木 花子"
 - runFlow: ../helpers/navigate_to_persons.yaml
 - assertVisible: "山田 太郎"
 - assertVisible: "鈴木 花子"
 
 # メモありで登録した人物はメモも表示される
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "田中 次郎"
-    MEMO: "テストメモ"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "田中 次郎"
+      MEMO: "テストメモ"
 - runFlow: ../helpers/navigate_to_persons.yaml
 - assertVisible: "田中 次郎"
 - assertVisible: "テストメモ"

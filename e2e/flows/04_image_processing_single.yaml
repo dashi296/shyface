@@ -14,9 +14,10 @@ appId: com.dashi296.shyface.dev
 - runFlow: ../helpers/launch_dev.yaml
 
 # 人物を登録してから画像処理する
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "山田 太郎"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
 
 # ライブラリから1枚選択 → バッチ処理画面 → 処理中オーバーレイ確認
 - tapOn: "ライブラリから選択"
@@ -65,9 +66,10 @@ appId: com.dashi296.shyface.dev
 
 # --- 複数登録人物が写っている場合は全員にモザイク ---
 # NOTE: 実際のモザイク適用はスクリーンショットで目視確認
-- runFlow: ../helpers/register_person.yaml
-  env:
-    NAME: "鈴木 花子"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "鈴木 花子"
 - tapOn: "ライブラリから選択"
 - tapOn:
     point: "18%,25%"
