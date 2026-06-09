@@ -1,5 +1,7 @@
 # サブフロー: person_a を登録する
 # 前提: launchApp 済み・アプリが任意の画面に表示されている
+# 前提: iOS フォトライブラリのグリッド先頭3枚に person_a の写真が注入済み（bun run e2e:setup 実行済み）
+# 前提: シミュレーターのロケールは英語（日本語ロケールでは "Add" → "追加" に変更が必要）
 # 事後: 人物管理画面に "Person A" が表示されている
 
 - tapOn: "人物管理"
@@ -20,6 +22,8 @@
 - assertVisible: "顔写真を 3 枚追加してください（0/3）"
 - tapOn: "ライブラリ"
 - waitForAnimationToEnd
+# ピッカーのグリッドサムネイルが完全にロードされるまで待つ
+- waitForAnimationToEnd
 
 # iOS Photos ピッカー（PHPickerViewController）
 # 3列グリッドの1行目から3枚選択
@@ -37,7 +41,7 @@
 - waitForAnimationToEnd
 
 # Step2 に戻り 3枚揃ったことを確認
-- assertVisible: "（3/3）"
+- assertVisible: "顔写真を 3 枚追加してください（3/3）"
 - tapOn: "確認へ"
 
 # Step3: 確認画面
