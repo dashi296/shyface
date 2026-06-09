@@ -104,19 +104,25 @@ load() {
   xcrun simctl addmedia "$UDID" "$1"
 }
 
-echo "[registration]"
-load "$FIXTURES_DIR/person_a/1_front.jpg"
-load "$FIXTURES_DIR/person_a/2_left.jpg"
-load "$FIXTURES_DIR/person_a/3_right.jpg"
-load "$FIXTURES_DIR/person_b/1_front.jpg"
-load "$FIXTURES_DIR/person_b/2_left.jpg"
-load "$FIXTURES_DIR/person_b/3_right.jpg"
-
+# iOS の Recents は「最後にロードした画像が先頭」に表示される。
+# Maestro フローのヘルパーがグリッド先頭の座標で登録用写真を選べるよう、
+# recognition 系（顔なし・集合写真を含む）を先に、登録用顔写真を後にロードする。
 echo "[recognition]"
 load "$FIXTURES_DIR/recognition/match_person_a.jpg"
 load "$FIXTURES_DIR/recognition/match_person_b.jpg"
 load "$FIXTURES_DIR/recognition/no_match.jpg"
 load "$FIXTURES_DIR/recognition/group_ab.jpg"
+
+# person_a を最後にロード → Recents 先頭3枚が person_a の顔写真になる
+echo "[registration - person_b]"
+load "$FIXTURES_DIR/person_b/1_front.jpg"
+load "$FIXTURES_DIR/person_b/2_left.jpg"
+load "$FIXTURES_DIR/person_b/3_right.jpg"
+
+echo "[registration - person_a (Recents 先頭に配置)]"
+load "$FIXTURES_DIR/person_a/1_front.jpg"
+load "$FIXTURES_DIR/person_a/2_left.jpg"
+load "$FIXTURES_DIR/person_a/3_right.jpg"
 
 echo ""
 echo "Done. Photos are available in the simulator's photo library."

@@ -36,10 +36,11 @@ env:
 - tapOn: "次へ"
 
 # Step2: 写真3枚追加（フォトライブラリ）
-# フィクスチャ画像が事前にロードされていることが前提
+# 前提: load-fixtures-to-simulator.sh が person_a を最後にロードするため、
+#       Recents 先頭3枚は必ず person_a の顔写真（1_front, 2_left, 3_right）になる
 - assertVisible: "写真を追加"
 - tapOn: "ライブラリ"
-# グリッド内の写真を3枚選択（最大3枚指定なので一度に選択できる）
+# Recents 先頭行の3枚（person_a 顔写真）を選択
 - tapOn:
     point: "18%,25%"
 - tapOn:
