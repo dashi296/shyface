@@ -1,0 +1,38 @@
+# Feature: ホーム画面
+# - アプリ起動時の表示確認
+# - フォトライブラリ選択キャンセル → ホームに留まる
+# - フォトライブラリから画像選択 → バッチ処理画面に遷移
+#
+# NOTE: カメラシナリオはiOSシミュレーターでカメラが使用不可のためスキップ
+# NOTE: カメラ権限拒否シナリオはシミュレーターで権限状態の制御が困難なためスキップ
+# 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
+appId: com.dashi296.shyface.dev
+---
+- runFlow: helpers/launch_dev.yaml
+
+# アプリ起動時にホームタブが表示される
+- assertVisible: "顔を自動で隠します"
+- assertVisible: "登録された人物の顔のみモザイクをかけます"
+- assertVisible: "カメラで撮影"
+- assertVisible: "ライブラリから選択"
+
+# フォトライブラリ選択をキャンセルした場合はホームに留まる
+- tapOn: "ライブラリから選択"
+- tapOn:
+    text: "Cancel"
+    optional: true
+- tapOn:
+    text: "キャンセル"
+    optional: true
+- assertVisible: "カメラで撮影"
+
+# フォトライブラリから画像を選択してバッチ処理画面に遷移する
+- tapOn: "ライブラリから選択"
+- tapOn:
+    point: "18%,25%"
+- tapOn: "追加"
+- assertVisible: "処理結果"
+
+# 戻る
+- tapOn: "戻る"
+- assertVisible: "カメラで撮影"

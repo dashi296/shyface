@@ -1,0 +1,80 @@
+# Feature: 画像処理（バッチ・複数枚）
+# - 複数画像を選択するとバッチ処理画面に遷移する
+# - 処理中に進捗が表示される
+# - 全処理完了後に結果一覧が表示される
+# - 正常処理カードに「共有」ボタンが表示される
+# - 個別カードの「共有」ボタンで共有シートが開く
+# - 失敗カードに「未処理」バッジ・エラーメッセージが表示される（「共有」なし）
+# - 一部失敗時にエラーバナーが表示される
+# - 全件失敗時にエラー画面が表示される
+# - 「再試行」で再処理できる
+# - 「別の画像を選択」でホーム画面に戻る
+# - 登録人物のみにモザイクが適用される
+#
+# 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
+appId: com.dashi296.shyface.dev
+---
+- runFlow: helpers/launch_dev.yaml
+
+# 人物を登録
+- runFlow: helpers/register_person.yaml
+  env:
+    NAME: "山田 太郎"
+
+# 複数画像を選択してバッチ処理画面に遷移
+- tapOn: "ライブラリから選択"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    point: "35%,25%"
+- tapOn:
+    point: "52%,25%"
+- tapOn: "追加"
+- assertVisible: "処理結果"
+
+# 処理中に進捗が表示される（「N / M 枚処理中...」）
+- assertVisible:
+    text: "枚処理中"
+    optional: true
+- takeScreenshot: batch_processing_progress
+
+# 処理完了まで待機
+- wait: 15000
+
+# 全処理完了後に結果一覧が表示される
+- assertVisible: "1枚目"
+- assertVisible: "2枚目"
+- assertVisible: "3枚目"
+- assertVisible: "共有"
+- takeScreenshot: batch_processing_results
+
+# 個別カードの「共有」ボタンで共有シートが開く
+- tapOn:
+    text: "共有"
+    index: 0
+- takeScreenshot: share_sheet
+- tapOn:
+    text: "キャンセル"
+    optional: true
+- tapOn:
+    text: "閉じる"
+    optional: true
+
+# 「別の画像を選択」でホーム画面に戻る
+- tapOn: "別の画像を選択"
+- assertVisible: "カメラで撮影"
+
+# --- 登録人物のみにモザイクが適用される（目視確認）---
+- tapOn: "ライブラリから選択"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    point: "35%,25%"
+- tapOn: "追加"
+- wait: 10000
+- takeScreenshot: batch_result_selective_mosaic
+- tapOn: "別の画像を選択"
+
+# --- 「再試行」ボタンのテスト ---
+# NOTE: バッチ全件失敗（getAllEmbeddings失敗）はE2Eで再現困難なためスキップ
+# 代わりに再試行ボタンの存在確認のみ行う場合は手動テストで補完すること

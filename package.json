@@ -12,7 +12,9 @@
     "tsc": "tsc --noEmit",
     "e2e:setup": "bash scripts/download-test-fixtures.sh && bash scripts/load-fixtures-to-simulator.sh --clean",
     "e2e:download": "bash scripts/download-test-fixtures.sh",
-    "e2e:load": "bash scripts/load-fixtures-to-simulator.sh"
+    "e2e:load": "bash scripts/load-fixtures-to-simulator.sh",
+    "e2e": "maestro test e2e/flows/",
+    "e2e:debug": "maestro test e2e/flows/06_debug.yaml"
   },
   "dependencies": {
     "@react-native-ml-kit/face-detection": "^2.0.1",

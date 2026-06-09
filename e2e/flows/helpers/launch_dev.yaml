@@ -1,0 +1,7 @@
+# 開発ビルドを状態クリアして起動し、ホーム画面を確認するヘルパー
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+- assertVisible: "カメラで撮影"
+- assertVisible: "ライブラリから選択"
