@@ -4,7 +4,7 @@
 # - 人物管理 → ホームタブ切り替え
 appId: com.dashi296.shyface.dev
 ---
-- runFlow: helpers/launch_dev.yaml
+- runFlow: ../helpers/launch_dev.yaml
 
 # タブバーに「ホーム」「人物管理」タブが表示される
 - assertVisible: "ホーム"

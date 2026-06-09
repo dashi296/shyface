@@ -8,7 +8,7 @@
 # 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
 appId: com.dashi296.shyface.dev
 ---
-- runFlow: helpers/launch_dev.yaml
+- runFlow: ../helpers/launch_dev.yaml
 
 # アプリ起動時にホームタブが表示される
 - assertVisible: "顔を自動で隠します"

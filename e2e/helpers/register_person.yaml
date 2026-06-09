@@ -4,13 +4,16 @@
 #
 # 環境変数:
 #   NAME  - 登録する人物の名前（必須）例: "山田 太郎"
-#   MEMO  - メモ（任意、省略時は空のまま次へ進む）
+#   MEMO  - メモ（任意）。指定した場合はメモ欄に入力する。省略時は空のまま次へ進む
 #
 # 使用例:
-#   - runFlow: helpers/register_person.yaml
+#   - runFlow: ../helpers/register_person.yaml
 #     env:
 #       NAME: "山田 太郎"
+#       MEMO: "テストメモ"  # 省略可
 appId: com.dashi296.shyface.dev
+env:
+  MEMO: ""
 ---
 - runFlow: navigate_to_persons.yaml
 
@@ -22,6 +25,14 @@ appId: com.dashi296.shyface.dev
     text: "例: 山田 太郎"
 - inputText: ${NAME}
 - hideKeyboard
+# MEMO が渡された場合のみメモ欄に入力する
+- runFlow:
+    when:
+      true: ${MEMO !== ""}
+    commands:
+      - tapOn: "メモ（任意）"
+      - inputText: ${MEMO}
+      - hideKeyboard
 - tapOn: "次へ"
 
 # Step2: 写真3枚追加（フォトライブラリ）
