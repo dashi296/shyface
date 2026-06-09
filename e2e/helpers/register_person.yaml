@@ -30,7 +30,7 @@ env:
     when:
       true: ${MEMO !== ""}
     commands:
-      - tapOn: "メモ（任意）"
+      - tapOn: "備考など"
       - inputText: ${MEMO}
       - hideKeyboard
 - tapOn: "次へ"
@@ -47,7 +47,12 @@ env:
     point: "35%,25%"
 - tapOn:
     point: "52%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 
 # Step3: 確認・登録
 - tapOn: "確認へ"

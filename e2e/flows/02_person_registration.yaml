@@ -54,7 +54,12 @@ appId: com.dashi296.shyface.dev
 - tapOn: "ライブラリ"
 - tapOn:
     point: "18%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - assertVisible: "顔写真を 3 枚追加してください（1/3）"
 - assertVisible:
     text: "確認へ"
@@ -64,14 +69,24 @@ appId: com.dashi296.shyface.dev
 - tapOn: "ライブラリ"
 - tapOn:
     point: "35%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - assertVisible: "顔写真を 3 枚追加してください（2/3）"
 
 # 3枚目: 「確認へ」有効・カメラ・ライブラリ無効
 - tapOn: "ライブラリ"
 - tapOn:
     point: "52%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - assertVisible: "顔写真を 3 枚追加してください（3/3）"
 - assertVisible:
     text: "確認へ"
@@ -141,7 +156,12 @@ appId: com.dashi296.shyface.dev
     point: "35%,25%"
 - tapOn:
     point: "52%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - tapOn: "確認へ"
 - assertVisible: "確認"
 - assertVisible: "テスト用メモ"

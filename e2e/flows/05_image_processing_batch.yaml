@@ -30,7 +30,12 @@ appId: com.dashi296.shyface.dev
     point: "35%,25%"
 - tapOn:
     point: "52%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - assertVisible: "処理結果"
 
 # 処理中に進捗が表示される（「N / M 枚処理中...」）
@@ -73,7 +78,12 @@ appId: com.dashi296.shyface.dev
     point: "18%,25%"
 - tapOn:
     point: "35%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - extendedWaitUntil:
     visible: "1枚目"
     timeout: 30000

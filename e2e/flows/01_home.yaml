@@ -30,7 +30,12 @@ appId: com.dashi296.shyface.dev
 - tapOn: "ライブラリから選択"
 - tapOn:
     point: "18%,25%"
-- tapOn: "追加"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
 - assertVisible: "処理結果"
 
 # 戻る
