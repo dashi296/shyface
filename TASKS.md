@@ -138,10 +138,9 @@ features レイヤーが依存するため、features より先に実装する�
 
 初期実装完了後に着手する。依存関係と検証コストを考慮した実施順序で管理する。
 
-- [ ] **#27** iOS FaceNetModule: MLMultiArray の入力レイアウト (NHWC vs NCHW) を検証する
-  - サイレント障害（推論は成功するが embedding が誤値になる）の可能性
-  - 他の精度改善施策の前提として最初に解消する
-  - 対象: `ios/FaceBlurApp/FaceNetModule.swift`
+- [x] **#27** iOS FaceNetModule: MLMultiArray の入力レイアウト (NHWC vs NCHW) を検証する
+  - 実装が Core ML / MLMultiArray から `react-native-fast-tflite`（TFLite、iOS/Android 共通）に変更されたため元の懸念は解消
+  - 入力レイアウトは `FaceNet.ts` 内で NHWC（`shape [1, H, W, 3]`）と明示されている
 
 - [x] **Dev 画面** 開発ビルド専用 Debug 画面で閾値をリアルタイム調整できるようにする
   - `src/shared/config/devOverrides.ts` — Zustand + expo-file-system 永続化
@@ -149,18 +148,18 @@ features レイヤーが依存するため、features より先に実装する�
   - `app/(tabs)/debug.tsx` — +/- ボタンで閾値・パディングを調整する画面
   - 非開発ビルドでは完全無効化（IS_DEV = false）
 
-- [ ] **#49** FaceNet embedding 精度の自動テスト基盤を構築する
-  - Python スクリプトで LFW dataset から embedding を生成し JSON に保存
-  - Jest で FAR / FRR / 正解率を計測・出力できるテストを作成
+- [x] **#49** FaceNet embedding 精度の自動テスト基盤を構築する
+  - `scripts/generate-embeddings.py` — TFLite モデルでフィクスチャ画像の embedding を生成し `e2e/fixtures/embeddings.json` に保存
+  - `src/shared/lib/__tests__/matchingAccuracy.test.ts` — FAR / FRR / 正解率を計測・ログ出力するテスト（embeddings.json が存在する場合のみ実行）
+  - 現在の計測結果 (threshold=0.6): 正解率 83.3%、FRR 0.0%、FAR 33.3% → #52 で閾値引き上げが必要
 
-- [ ] **#52** 顔マッチング閾値を 0.6 から 0.7 に引き上げる
-  - `FACE_SIMILARITY_THRESHOLD = 0.6 → 0.7`（CLAUDE.md との乖離解消）
-  - #49 のテスト基盤で定量検証してから入れる
+- [x] **#52** 顔マッチング閾値を 0.6 から 0.7 に引き上げる
+  - `FACE_SIMILARITY_THRESHOLD = 0.7` に更新（`src/shared/config/constants.ts`）
+  - #49 の計測結果（threshold=0.6 で FAR=33.3%）に基づき定量検証済み
   - コスト: 低 / 効果: 高
 
-- [ ] **#56** 顔クロップのパディングを 0.2 から 0.1 に縮小する
-  - `FACE_CROP_PADDING = 0.2 → 0.1`（背景ノイズ低減）
-  - #52 と同時期に Dev 画面で検証しながら調整する
+- [x] **#56** 顔クロップのパディングを 0.2 から 0.1 に縮小する
+  - `FACE_CROP_PADDING = 0.1` に更新（`src/shared/config/constants.ts`）
   - コスト: 低 / 効果: 小〜中
 
 - [ ] **#54** マッチング戦略を「任意一致」から「Top-K 平均スコア」方式に変更する

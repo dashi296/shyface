@@ -51,6 +51,9 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/.worktrees/"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/.worktrees/"
     ]
   },
   "private": true,
