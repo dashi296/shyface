@@ -39,8 +39,10 @@ appId: com.dashi296.shyface.dev
     optional: true
 - takeScreenshot: batch_processing_progress
 
-# 処理完了まで待機
-- wait: 15000
+# 処理完了まで結果一覧が表示されるのを待つ
+- extendedWaitUntil:
+    visible: "1枚目"
+    timeout: 60000
 
 # 全処理完了後に結果一覧が表示される
 - assertVisible: "1枚目"
@@ -72,7 +74,9 @@ appId: com.dashi296.shyface.dev
 - tapOn:
     point: "35%,25%"
 - tapOn: "追加"
-- wait: 10000
+- extendedWaitUntil:
+    visible: "1枚目"
+    timeout: 30000
 - takeScreenshot: batch_result_selective_mosaic
 - tapOn: "別の画像を選択"
 
