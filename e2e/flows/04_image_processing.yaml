@@ -1,0 +1,41 @@
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+
+# person_a を登録（顔照合の対象として）
+- runFlow: subflows/register_person_a.yaml
+
+# ホームタブに戻る
+- tapOn: "ホーム"
+- assertVisible: "ライブラリから選択"
+
+# フォトライブラリから画像を1枚選択
+- tapOn: "ライブラリから選択"
+- waitForAnimationToEnd
+# ピッカーのグリッドサムネイルが完全にロードされるまで待つ
+- waitForAnimationToEnd
+# グリッド先頭（最新）の画像を1枚選択
+# 座標: iPhone 15 Pro (393x852 pt) 基準
+- tapOn:
+    point: "17%, 27%"
+# 英語ロケール: "Add"、日本語ロケール: "追加"
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+# バッチ処理画面に遷移する
+- assertVisible: "処理結果"
+
+# 処理完了を待つ（モザイク適用などの処理に時間がかかる場合がある）
+- extendedWaitUntil:
+    visible:
+      text: "共有"
+    timeout: 30000
+
+# 結果画面のボタンが表示される
+- assertVisible: "共有"
+- assertVisible: "別の画像を選択"
+
+# "別の画像を選択" でホーム画面に戻る
+- tapOn: "別の画像を選択"
+- assertVisible: "ライブラリから選択"
