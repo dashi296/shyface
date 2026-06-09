@@ -1,0 +1,50 @@
+# サブフロー: person_a を登録する
+# 前提: launchApp 済み・アプリが任意の画面に表示されている
+# 事後: 人物管理画面に "Person A" が表示されている
+
+- tapOn: "人物管理"
+- assertVisible: "登録人物"
+
+# FAB をタップして登録シートを開く
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- assertVisible: "名前 *"
+
+# Step1: 名前入力
+- tapOn: "例: 山田 太郎"
+- inputText: "Person A"
+- tapOn: "次へ"
+
+# Step2: 写真選択
+- assertVisible: "写真を追加"
+- assertVisible: "顔写真を 3 枚追加してください（0/3）"
+- tapOn: "ライブラリ"
+- waitForAnimationToEnd
+
+# iOS Photos ピッカー（PHPickerViewController）
+# 3列グリッドの1行目から3枚選択
+# 座標: iPhone 15 Pro (393x852 pt) 基準
+# 再調整が必要な場合は point の値を変更する
+- tapOn:
+    point: "17%, 27%"
+- tapOn:
+    point: "50%, 27%"
+- tapOn:
+    point: "83%, 27%"
+
+# 選択確定（英語ロケール: "Add"、日本語ロケール: "追加"）
+- tapOn: "Add"
+- waitForAnimationToEnd
+
+# Step2 に戻り 3枚揃ったことを確認
+- assertVisible: "（3/3）"
+- tapOn: "確認へ"
+
+# Step3: 確認画面
+- assertVisible: "確認"
+- assertVisible: "Person A"
+- tapOn: "登録する"
+- waitForAnimationToEnd
+
+# 登録完了: 人物一覧に表示される
+- assertVisible: "Person A"
