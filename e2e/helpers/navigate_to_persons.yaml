@@ -1,5 +1,5 @@
 # 人物管理タブに遷移するヘルパー
 appId: com.dashi296.shyface.dev
 ---
-- tapOn: "人物管理"
+- tapOn: ".*人物管理.*"
 - assertVisible: "登録人物"

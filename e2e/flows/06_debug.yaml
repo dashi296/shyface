@@ -17,7 +17,7 @@ appId: com.dashi296.shyface.dev
 # Debug画面に閾値調整UIが表示される
 # NOTE: iOS 26 のタブ accessibility text は "Debug, tab, 3 of 3" 形式のため
 #       assertVisible は行わない。tapOn の成功がタブの存在を示す
-- tapOn: "Debug"
+- tapOn: ".*Debug.*"
 - assertVisible: "開発ビルド専用。本番には影響しません。"
 - assertVisible: "顔マッチング閾値"
 - assertVisible: "顔クロップパディング"
@@ -195,7 +195,7 @@ appId: com.dashi296.shyface.dev
 
 # アプリを再起動（clearState: false で永続化確認）
 - launchApp
-- tapOn: "Debug"
+- tapOn: ".*Debug.*"
 - assertVisible: "0.80"
 - takeScreenshot: threshold_persisted_after_restart
 
