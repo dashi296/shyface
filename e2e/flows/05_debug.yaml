@@ -1,0 +1,45 @@
+appId: com.dashi296.shyface.dev
+---
+# フロー: Debug 画面の E2E テスト（開発ビルド専用）
+# 前提: 開発ビルド（com.dashi296.shyface.dev）でのみ Debug タブが表示される
+# 前提: FACE_SIMILARITY_THRESHOLD=0.7 (表示: 0.70) / FACE_CROP_PADDING=0.1 (表示: 0.10) がデフォルト
+# 前提: ＋/− ボタンは index: 0 が閾値行、index: 1 がパディング行
+- launchApp:
+    clearState: true
+
+# Debug タブが表示される（開発ビルドのみ）
+- assertVisible: "Debug"
+- tapOn: "Debug"
+- assertVisible: "Debug Settings"
+
+# 調整行が表示される
+- assertVisible: "顔マッチング閾値"
+- assertVisible: "顔クロップパディング"
+- assertVisible: "すべてデフォルトに戻す"
+
+# デフォルト値が表示されている
+- assertVisible: "0.70"
+- assertVisible: "0.10"
+
+# 顔マッチング閾値を増加（＋ を1回タップ: index: 0）
+- tapOn:
+    text: "＋"
+    index: 0
+- assertVisible: "0.75"
+
+# 顔クロップパディングを増加（＋ を1回タップ: index: 1）
+- tapOn:
+    text: "＋"
+    index: 1
+- assertVisible: "0.15"
+
+# 顔マッチング閾値を減少（− を1回タップ: index: 0）
+- tapOn:
+    text: "−"
+    index: 0
+- assertVisible: "0.70"
+
+# すべてデフォルトに戻す（パディングも 0.10 に戻る）
+- tapOn: "すべてデフォルトに戻す"
+- assertVisible: "0.70"
+- assertVisible: "0.10"

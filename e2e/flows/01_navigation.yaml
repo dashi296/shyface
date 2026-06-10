@@ -1,0 +1,20 @@
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+
+# 起動直後: ホームタブが表示されている
+- assertVisible: "ホーム"
+- assertVisible: "人物管理"
+- assertVisible: "カメラで撮影"
+- assertVisible: "ライブラリから選択"
+
+# 人物管理タブに切り替え
+- tapOn: "人物管理"
+- assertVisible: "登録人物"
+- assertVisible: "登録された人物がいません"
+
+# ホームタブに戻る
+- tapOn: "ホーム"
+- assertVisible: "カメラで撮影"
+- assertVisible: "ライブラリから選択"
