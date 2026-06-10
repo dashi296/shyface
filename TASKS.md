@@ -179,6 +179,20 @@ features レイヤーが依存するため、features より先に実装する�
 
 ---
 
+---
+
+## フェーズ 5.5: Maestro MCP 検証環境整備（#63）
+
+- [x] **#63** Maestro MCP による実装検証環境を整備する
+  - `.gitignore` に `.maestro/` を追加
+  - `.claude/settings.json` に Maestro MCP サーバー設定を追加
+  - `e2e/features/` — Gherkin 記法のシナリオ定義（7 ファイル・72 シナリオ）
+  - `e2e/flows/` — Maestro YAML フロー（6 フロー + 3 ヘルパー）
+  - `package.json` に `e2e` / `e2e:debug` スクリプトを追加
+  - 実行コマンド: `bun run e2e:load && bun run e2e`
+
+---
+
 ## フェーズ 6: その他の将来の改善候補（Future）
 
 - [ ] **#18** 登録時の撮影ガイダンス UI

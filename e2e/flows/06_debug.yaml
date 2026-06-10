@@ -1,0 +1,203 @@
+# Feature: Debug画面（開発ビルド専用）
+# - 開発ビルドでDebugタブが表示される
+# - Debug画面に閾値・パディング調整UIが表示される
+# - 各パラメーターを増加・減少できる
+# - 各パラメーターが最小値・最大値で停止する
+# - 「戻す」ボタンで個別値をデフォルトに戻せる
+# - 「すべてデフォルトに戻す」で全設定がリセットされる
+# - オーバーライドした値はアプリ再起動後も保持される
+#
+# NOTE: 本番ビルドでのDebugタブ非表示はビルド設定の違いによるため、
+#       本フローは開発ビルド（com.dashi296.shyface.dev）でのみ実行すること
+appId: com.dashi296.shyface.dev
+---
+- launchApp:
+    clearState: true
+
+# Debug画面に閾値調整UIが表示される
+# NOTE: iOS 26 のタブ accessibility text は "Debug, tab, 3 of 3" 形式のため
+#       assertVisible は行わない。tapOn の成功がタブの存在を示す
+- tapOn: ".*Debug.*"
+- assertVisible: "開発ビルド専用。本番には影響しません。"
+- assertVisible: "顔マッチング閾値"
+- assertVisible: "顔クロップパディング"
+- assertVisible: "すべてデフォルトに戻す"
+
+# --- 顔マッチング閾値 ---
+
+# デフォルト値（0.70）が表示されている
+- assertVisible: "0.70"
+
+# 閾値を増加できる（0.70 → 0.75）
+- tapOn:
+    text: "＋"
+    index: 0
+- assertVisible: "0.75"
+
+# 増加後は値が青色で表示される（オーバーライド中）
+# NOTE: 色のアサートはMaestroでは困難なためスクリーンショットで目視確認
+- takeScreenshot: threshold_overridden
+
+# 「戻す」ボタンで閾値をデフォルトに戻せる
+- tapOn:
+    text: "戻す"
+    index: 0
+- assertVisible: "0.70"
+
+# 閾値を減少できる（0.70 → 0.65）
+- tapOn:
+    text: "−"
+    index: 0
+- assertVisible: "0.65"
+
+# 閾値を最小値まで下げて「−」ボタンが無効になることを確認
+# 最小値: 0.50（0.65から3回減少）
+- tapOn:
+    text: "−"
+    index: 0
+- tapOn:
+    text: "−"
+    index: 0
+- tapOn:
+    text: "−"
+    index: 0
+- assertVisible: "0.50"
+- assertVisible:
+    text: "−"
+    enabled: false
+    index: 0
+
+# 閾値をデフォルトに戻す
+- tapOn:
+    text: "戻す"
+    index: 0
+
+# 閾値を最大値まで上げて「＋」ボタンが無効になることを確認
+# 最大値: 1.00（0.70から6回増加）
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- assertVisible: "1.00"
+- assertVisible:
+    text: "＋"
+    enabled: false
+    index: 0
+
+# --- 顔クロップパディング ---
+
+# デフォルト値（0.10）が表示されている
+- assertVisible: "0.10"
+
+# パディングを増加できる（0.10 → 0.15）
+- tapOn:
+    text: "＋"
+    index: 1
+- assertVisible: "0.15"
+
+# 「戻す」ボタンでパディングをデフォルトに戻せる
+- tapOn:
+    text: "戻す"
+    index: 1
+- assertVisible: "0.10"
+
+# パディングを減少できる（0.10 → 0.05）
+- tapOn:
+    text: "−"
+    index: 1
+- assertVisible: "0.05"
+
+# パディングを最小値まで下げて「−」ボタンが無効になることを確認
+# 最小値: 0.00
+- tapOn:
+    text: "−"
+    index: 1
+- assertVisible: "0.00"
+- assertVisible:
+    text: "−"
+    enabled: false
+    index: 1
+
+# パディングをデフォルトに戻す
+- tapOn:
+    text: "戻す"
+    index: 1
+
+# パディングを最大値まで上げて「＋」ボタンが無効になることを確認
+# 最大値: 0.50（0.10から8回増加）
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- tapOn:
+    text: "＋"
+    index: 1
+- assertVisible: "0.50"
+- assertVisible:
+    text: "＋"
+    enabled: false
+    index: 1
+
+# --- 「すべてデフォルトに戻す」で全設定がリセットされる ---
+
+# まず両方をオーバーライド
+- tapOn:
+    text: "＋"
+    index: 0
+- assertVisible: "1.00"
+- assertVisible: "0.50"
+
+- tapOn: "すべてデフォルトに戻す"
+- assertVisible: "0.70"
+- assertVisible: "0.10"
+
+# --- オーバーライドした値はアプリ再起動後も保持される ---
+
+# 閾値を 0.80 に設定
+- tapOn:
+    text: "＋"
+    index: 0
+- tapOn:
+    text: "＋"
+    index: 0
+- assertVisible: "0.80"
+
+# アプリを再起動（clearState: false で永続化確認）
+- launchApp
+- tapOn: ".*Debug.*"
+- assertVisible: "0.80"
+- takeScreenshot: threshold_persisted_after_restart
+
+# クリーンアップ
+- tapOn: "すべてデフォルトに戻す"

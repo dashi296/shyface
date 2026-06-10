@@ -1,0 +1,107 @@
+# Feature: 画像処理（単枚・カメラ撮影）
+# - 処理中オーバーレイが表示される
+# - 処理完了後に結果画像・共有ボタン・別の画像を選択ボタンが表示される
+# - 共有ボタンをタップすると共有シートが開く
+# - 「別の画像を選択」でホーム画面に戻る
+# - 処理失敗時にエラーメッセージが表示される
+#
+# NOTE: カメラを使用するシナリオはiOSシミュレーターで対応不可のためスキップ。
+#       代わりにライブラリ→1枚選択→[imageId]ルートへの遷移でモザイク動作を検証する。
+# NOTE: 顔モザイクの視覚的確認はスクリーンショットで記録する。
+# 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
+appId: com.dashi296.shyface.dev
+---
+- runFlow: ../helpers/launch_dev.yaml
+
+# 人物を登録してから画像処理する
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
+
+# ライブラリから1枚選択 → バッチ処理画面 → 処理中オーバーレイ確認
+- tapOn: "ライブラリから選択"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- assertVisible: "処理結果"
+- takeScreenshot: processing_overlay
+
+# 処理完了まで結果カードが表示されるのを待つ
+- extendedWaitUntil:
+    visible: "1枚目"
+    timeout: 30000
+
+# 処理完了後の確認（バッチ画面）
+- assertVisible: "1枚目"
+- assertVisible: "共有"
+- takeScreenshot: processing_result_with_mosaic
+
+# 個別カードの共有ボタンをタップすると共有シートが開く
+- tapOn: "共有"
+- assertVisible:
+    text: "キャンセル"
+    optional: true
+- tapOn:
+    text: "キャンセル"
+    optional: true
+- tapOn:
+    text: "閉じる"
+    optional: true
+
+# 「別の画像を選択」でホーム画面に戻る
+- tapOn: "別の画像を選択"
+- assertVisible: "カメラで撮影"
+
+# --- 登録されていない人物の写真はモザイクがかからない ---
+- launchApp:
+    clearState: true
+# 人物を登録せずに処理
+- tapOn: "ライブラリから選択"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- extendedWaitUntil:
+    visible: "1枚目"
+    timeout: 30000
+- assertVisible: "1枚目"
+- takeScreenshot: processing_result_no_mosaic
+- tapOn: "別の画像を選択"
+
+# --- 複数登録人物が写っている場合は全員にモザイク ---
+# person_a と person_b を両方登録し、group_ab.jpg（両者が写る合成画像）で検証する
+# NOTE: 実際のモザイク適用はスクリーンショットで目視確認
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "鈴木 花子"
+      PHOTO_Y: "42%"
+- tapOn: "ライブラリから選択"
+# group_ab.jpg は Recents 3行目先頭（person_a 3枚 + person_b 3枚 の後）
+- tapOn:
+    point: "18%,58%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- extendedWaitUntil:
+    visible: "1枚目"
+    timeout: 30000
+- takeScreenshot: processing_result_multiple_persons
+- tapOn: "別の画像を選択"

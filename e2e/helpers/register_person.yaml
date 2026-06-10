@@ -1,0 +1,75 @@
+# 人物を登録するヘルパーフロー
+#
+# 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
+#
+# 環境変数:
+#   NAME  - 登録する人物の名前（必須）例: "山田 太郎"
+#   MEMO  - メモ（任意）。指定した場合はメモ欄に入力する。省略時は空のまま次へ進む
+#
+# 使用例:
+#   - runFlow: ../helpers/register_person.yaml
+#     env:
+#       NAME: "山田 太郎"
+#       MEMO: "テストメモ"  # 省略可
+appId: com.dashi296.shyface.dev
+env:
+  MEMO: ""
+  # PHOTO_Y: 写真グリッドの行を指定する Y 座標（%）。
+  #   "25%" = Recents 1行目（person_a 登録用写真）
+  #   "42%" = Recents 2行目（person_b 登録用写真）
+  PHOTO_Y: "25%"
+---
+- runFlow: navigate_to_persons.yaml
+
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+
+# Step1: 名前・メモ入力
+- tapOn:
+    text: "例: 山田 太郎"
+- inputText: ${NAME}
+- hideKeyboard
+# MEMO が渡された場合のみメモ欄に入力する
+- runFlow:
+    when:
+      true: ${MEMO !== ""}
+    commands:
+      - tapOn: "備考など"
+      - inputText: ${MEMO}
+      - hideKeyboard
+- tapOn: "次へ"
+
+# Step2: 写真3枚追加（フォトライブラリ）
+# 前提: load-fixtures-to-simulator.sh でフィクスチャをロード済みであること
+# PHOTO_Y で行を切り替え可能:
+#   "25%" → person_a（Recents 1行目）
+#   "42%" → person_b（Recents 2行目）
+- assertVisible: "写真を追加"
+- tapOn: "ライブラリ"
+- tapOn:
+    point: "18%,${PHOTO_Y}"
+- tapOn:
+    point: "35%,${PHOTO_Y}"
+- tapOn:
+    point: "52%,${PHOTO_Y}"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+
+# Step3: 確認・登録
+- tapOn: "確認へ"
+- assertVisible: "確認"
+- assertVisible: ${NAME}
+- tapOn: "登録する"
+
+# embedding 抽出・DB 保存が完了してシートが閉じるまで待つ
+# 「登録人物」ヘッダーが表示されれば人物一覧に戻ったことが確認できる
+- extendedWaitUntil:
+    visible: "登録人物"
+    timeout: 15000
+
+# ホームに戻る
+- tapOn: ".*ホーム.*"

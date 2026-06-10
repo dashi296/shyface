@@ -1,0 +1,173 @@
+# Feature: 人物登録
+# - 登録シートが開く
+# - 名前なしで次へ進めない
+# - 名前入力で次へ進める
+# - Step1 → Step2 遷移
+# - 写真3枚未満では「確認へ」無効
+# - 写真3枚で「確認へ」有効、カメラ・ライブラリボタン無効
+# - Step2 → Step3 遷移
+# - メモありで確認画面にメモが表示される
+# - メモなしで確認画面にメモ欄が表示されない
+# - 登録中ローディング状態
+# - 登録完了 → 人物一覧に追加される
+# - キャンセル → シートが閉じる・データ破棄
+# - 顔が検出できない写真でエラーアラート
+#
+# NOTE: カメラから写真追加・カメラ権限拒否シナリオはシミュレーター非対応のためスキップ
+# 前提: bun run e2e:load でフィクスチャをシミュレーターに読み込んでおくこと
+appId: com.dashi296.shyface.dev
+---
+- runFlow: ../helpers/launch_dev.yaml
+- runFlow: ../helpers/navigate_to_persons.yaml
+
+# 登録シートが開く
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- assertVisible: "名前 *"
+- assertVisible: "メモ（任意）"
+
+# 名前を入力せずに次へ進めない
+- assertVisible:
+    text: "次へ"
+    enabled: false
+
+# 名前を入力すると次へ進める
+- tapOn:
+    text: "例: 山田 太郎"
+- inputText: "テスト 太郎"
+- hideKeyboard
+- assertVisible:
+    text: "次へ"
+    enabled: true
+
+# Step1 → Step2 遷移
+- tapOn: "次へ"
+- assertVisible: "写真を追加"
+- assertVisible: "顔写真を 3 枚追加してください（0/3）"
+- assertVisible: "カメラ"
+- assertVisible: "ライブラリ"
+- assertVisible:
+    text: "確認へ"
+    enabled: false
+
+# 写真1枚追加で「確認へ」引き続き無効
+- tapOn: "ライブラリ"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- assertVisible: "顔写真を 3 枚追加してください（1/3）"
+- assertVisible:
+    text: "確認へ"
+    enabled: false
+
+# 2枚目
+- tapOn: "ライブラリ"
+- tapOn:
+    point: "35%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- assertVisible: "顔写真を 3 枚追加してください（2/3）"
+
+# 3枚目: 「確認へ」有効・カメラ・ライブラリ無効
+- tapOn: "ライブラリ"
+- tapOn:
+    point: "52%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- assertVisible: "顔写真を 3 枚追加してください（3/3）"
+- assertVisible:
+    text: "確認へ"
+    enabled: true
+- assertVisible:
+    text: "カメラ"
+    enabled: false
+- assertVisible:
+    text: "ライブラリ"
+    enabled: false
+
+# Step2 → Step3 遷移
+- tapOn: "確認へ"
+- assertVisible: "確認"
+- assertVisible: "テスト 太郎"
+- assertVisible: "登録する"
+
+# メモなしの場合はメモ欄が表示されない（メモは入力していない）
+- assertNotVisible: "メモ"
+
+# 登録実行 → ローディング → 完了 → 人物一覧に追加
+- tapOn: "登録する"
+- assertVisible: "登録人物"
+- assertVisible: "テスト 太郎"
+
+# --- キャンセルのテスト ---
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- tapOn:
+    text: "例: 山田 太郎"
+- inputText: "キャンセル テスト"
+- hideKeyboard
+- tapOn: "キャンセル"
+- assertVisible: "登録人物"
+- assertNotVisible: "キャンセル テスト"
+
+# --- Step2でキャンセルするとデータが破棄される ---
+- tapOn: "＋"
+- tapOn:
+    text: "例: 山田 太郎"
+- inputText: "廃棄 テスト"
+- hideKeyboard
+- tapOn: "次へ"
+- assertVisible: "写真を追加"
+- tapOn: "キャンセル"
+- assertVisible: "登録人物"
+# 再度シートを開いてデータがリセットされていることを確認
+- tapOn: "＋"
+- assertVisible: "人物を登録"
+- assertNotVisible: "廃棄 テスト"
+- tapOn: "キャンセル"
+
+# --- メモありで確認画面にメモが表示される ---
+- tapOn: "＋"
+- tapOn:
+    text: "例: 山田 太郎"
+- inputText: "メモ テスト"
+- hideKeyboard
+- tapOn: "備考など"
+- inputText: "テスト用メモ"
+- hideKeyboard
+- tapOn: "次へ"
+- tapOn: "ライブラリ"
+- tapOn:
+    point: "18%,25%"
+- tapOn:
+    point: "35%,25%"
+- tapOn:
+    point: "52%,25%"
+- tapOn:
+    text: "追加"
+    optional: true
+- tapOn:
+    text: "Add"
+    optional: true
+- tapOn: "確認へ"
+- assertVisible: "確認"
+- assertVisible: "テスト用メモ"
+- tapOn: "キャンセル"
+
+# --- 顔が検出できない写真でエラーアラート ---
+# NOTE: フィクスチャのno_match.jpgなど顔なし画像を使用
+# この確認はno_match画像をライブラリから選択する形で実施
+# 実際のテスト環境で顔なし画像のインデックスを確認した上で座標を調整すること

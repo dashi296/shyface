@@ -1,0 +1,79 @@
+# Feature: 人物管理
+# - 人物が未登録の場合に空状態メッセージが表示される
+# - 登録済み人物が一覧に表示される
+# - 複数人が登録されている場合に全員が一覧に表示される
+# - メモありの人物はメモも一覧に表示される
+# - 削除確認ダイアログが表示される
+# - 削除キャンセルで人物が残る
+# - 削除実行で人物が削除される
+# - 全員削除すると空状態メッセージが表示される
+appId: com.dashi296.shyface.dev
+---
+- runFlow: ../helpers/launch_dev.yaml
+- runFlow: ../helpers/navigate_to_persons.yaml
+
+# 人物が未登録の場合に空状態メッセージが表示される
+- assertVisible: "登録された人物がいません"
+- assertVisible: "右下のボタンから人物を登録してください"
+
+# 人物を1人登録して一覧に表示されることを確認
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "山田 太郎"
+- runFlow: ../helpers/navigate_to_persons.yaml
+- assertVisible: "山田 太郎"
+
+# 複数人登録で全員が表示される
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "鈴木 花子"
+- runFlow: ../helpers/navigate_to_persons.yaml
+- assertVisible: "山田 太郎"
+- assertVisible: "鈴木 花子"
+
+# メモありで登録した人物はメモも表示される
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
+      NAME: "田中 次郎"
+      MEMO: "テストメモ"
+- runFlow: ../helpers/navigate_to_persons.yaml
+- assertVisible: "田中 次郎"
+- assertVisible: "テストメモ"
+
+# 削除ボタンをタップすると確認ダイアログが表示される
+- tapOn: "削除"
+- assertVisible: "削除確認"
+- assertVisible: "キャンセル"
+- assertVisible: "削除"
+
+# 削除キャンセルで人物が残る（最初に見つかった「田中 次郎」の削除をキャンセル）
+- tapOn: "キャンセル"
+- assertVisible: "田中 次郎"
+
+# 削除実行で人物が削除される
+- tapOn:
+    text: "削除"
+    index: 0
+- assertVisible: "削除確認"
+- tapOn:
+    text: "削除"
+    index: 1
+- assertNotVisible: "田中 次郎"
+
+# 残り2人も削除して空状態を確認
+- tapOn:
+    text: "削除"
+    index: 0
+- tapOn:
+    text: "削除"
+    index: 1
+- tapOn:
+    text: "削除"
+    index: 0
+- tapOn:
+    text: "削除"
+    index: 1
+- assertVisible: "登録された人物がいません"

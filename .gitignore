@@ -46,3 +46,6 @@ e2e/fixtures/faces/.generator-version
 *.jks
 *.keystore
 .superpowers/
+
+# Maestro
+.maestro/
