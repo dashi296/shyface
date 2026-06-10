@@ -21,7 +21,6 @@
     "e2e:test:debug": "maestro test e2e/flows/05_debug.yaml"
   },
   "dependencies": {
-    "@react-native-ml-kit/face-detection": "^2.0.1",
     "@shopify/react-native-skia": "2.4.18",
     "@tanstack/react-query": "^5.94.5",
     "expo": "~55.0.8",

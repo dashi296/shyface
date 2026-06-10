@@ -1,4 +1,6 @@
-import FaceDetection from '@react-native-ml-kit/face-detection'
+import { NativeModules } from 'react-native'
+
+const { FaceDetectorModule } = NativeModules
 
 export interface BoundingBox {
   x: number
@@ -8,13 +10,6 @@ export interface BoundingBox {
 }
 
 export const FaceDetector = {
-  detect: async (uri: string): Promise<BoundingBox[]> => {
-    const faces = await FaceDetection.detect(uri)
-    return faces.map((face) => ({
-      x: face.frame.left,
-      y: face.frame.top,
-      width: face.frame.width,
-      height: face.frame.height,
-    }))
-  },
+  detect: (uri: string): Promise<BoundingBox[]> =>
+    FaceDetectorModule.detect(uri),
 }
