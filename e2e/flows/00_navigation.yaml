@@ -6,11 +6,9 @@ appId: com.dashi296.shyface.dev
 ---
 - runFlow: ../helpers/launch_dev.yaml
 
-# タブバーに「ホーム」「人物管理」タブが表示される
-- assertVisible: "ホーム"
-- assertVisible: "人物管理"
-
 # ホームタブから人物管理タブに切り替えられる
+# NOTE: iOS 26 のタブ accessibility text は "ホーム, tab, 1 of 3" 形式のため
+#       タブラベルの assertVisible は行わない。tapOn の成功がタブの存在を示す
 - tapOn: "人物管理"
 - assertVisible: "登録人物"
 - assertNotVisible: "カメラで撮影"

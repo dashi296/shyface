@@ -14,10 +14,9 @@ appId: com.dashi296.shyface.dev
 - launchApp:
     clearState: true
 
-# 開発ビルドでDebugタブが表示される
-- assertVisible: "Debug"
-
 # Debug画面に閾値調整UIが表示される
+# NOTE: iOS 26 のタブ accessibility text は "Debug, tab, 3 of 3" 形式のため
+#       assertVisible は行わない。tapOn の成功がタブの存在を示す
 - tapOn: "Debug"
 - assertVisible: "開発ビルド専用。本番には影響しません。"
 - assertVisible: "顔マッチング閾値"
