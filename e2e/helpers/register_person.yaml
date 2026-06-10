@@ -65,5 +65,11 @@ env:
 - assertVisible: ${NAME}
 - tapOn: "登録する"
 
+# embedding 抽出・DB 保存が完了してシートが閉じるまで待つ
+# 「登録人物」ヘッダーが表示されれば人物一覧に戻ったことが確認できる
+- extendedWaitUntil:
+    visible: "登録人物"
+    timeout: 15000
+
 # ホームに戻る
 - tapOn: "ホーム"
