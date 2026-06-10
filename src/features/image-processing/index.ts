@@ -1,5 +1,8 @@
 export { useProcessImage } from './model/useProcessImage'
 export { useProcessImages } from './model/useProcessImages'
 export type { ImageProcessResult, ProcessProgress } from './model/useProcessImages'
+export { useFaceSelection } from './model/useFaceSelection'
+export type { FaceCandidate } from './model/types'
 export { ProcessResultView } from './ui/ProcessResultView'
 export { ProcessBatchResultView } from './ui/ProcessBatchResultView'
+export { FaceSelectionView } from './ui/FaceSelectionView'
