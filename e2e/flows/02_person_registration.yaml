@@ -145,7 +145,7 @@ appId: com.dashi296.shyface.dev
     text: "例: 山田 太郎"
 - inputText: "メモ テスト"
 - hideKeyboard
-- tapOn: "メモ（任意）"
+- tapOn: "備考など"
 - inputText: "テスト用メモ"
 - hideKeyboard
 - tapOn: "次へ"
