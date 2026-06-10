@@ -40,7 +40,7 @@ appId: com.dashi296.shyface.dev
 
 # 処理中に進捗が表示される（「N / M 枚処理中...」）
 - assertVisible:
-    text: "枚処理中"
+    text: ".*枚処理中.*"
     optional: true
 - takeScreenshot: batch_processing_progress
 

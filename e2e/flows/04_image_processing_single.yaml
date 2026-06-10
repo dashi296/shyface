@@ -79,14 +79,21 @@ appId: com.dashi296.shyface.dev
 - tapOn: "別の画像を選択"
 
 # --- 複数登録人物が写っている場合は全員にモザイク ---
+# person_a と person_b を両方登録し、group_ab.jpg（両者が写る合成画像）で検証する
 # NOTE: 実際のモザイク適用はスクリーンショットで目視確認
 - runFlow:
     file: ../helpers/register_person.yaml
     env:
+      NAME: "山田 太郎"
+- runFlow:
+    file: ../helpers/register_person.yaml
+    env:
       NAME: "鈴木 花子"
+      PHOTO_Y: "42%"
 - tapOn: "ライブラリから選択"
+# group_ab.jpg は Recents 3行目先頭（person_a 3枚 + person_b 3枚 の後）
 - tapOn:
-    point: "18%,25%"
+    point: "18%,58%"
 - tapOn:
     text: "追加"
     optional: true

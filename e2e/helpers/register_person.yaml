@@ -14,6 +14,10 @@
 appId: com.dashi296.shyface.dev
 env:
   MEMO: ""
+  # PHOTO_Y: 写真グリッドの行を指定する Y 座標（%）。
+  #   "25%" = Recents 1行目（person_a 登録用写真）
+  #   "42%" = Recents 2行目（person_b 登録用写真）
+  PHOTO_Y: "25%"
 ---
 - runFlow: navigate_to_persons.yaml
 
@@ -36,17 +40,18 @@ env:
 - tapOn: "次へ"
 
 # Step2: 写真3枚追加（フォトライブラリ）
-# 前提: load-fixtures-to-simulator.sh が person_a を最後にロードするため、
-#       Recents 先頭3枚は必ず person_a の顔写真（1_front, 2_left, 3_right）になる
+# 前提: load-fixtures-to-simulator.sh でフィクスチャをロード済みであること
+# PHOTO_Y で行を切り替え可能:
+#   "25%" → person_a（Recents 1行目）
+#   "42%" → person_b（Recents 2行目）
 - assertVisible: "写真を追加"
 - tapOn: "ライブラリ"
-# Recents 先頭行の3枚（person_a 顔写真）を選択
 - tapOn:
-    point: "18%,25%"
+    point: "18%,${PHOTO_Y}"
 - tapOn:
-    point: "35%,25%"
+    point: "35%,${PHOTO_Y}"
 - tapOn:
-    point: "52%,25%"
+    point: "52%,${PHOTO_Y}"
 - tapOn:
     text: "追加"
     optional: true
